@@ -225,6 +225,7 @@ function roic(s) {
 export const DERIVE = {
   fcf: {
     nom: "Free cash flow (FCF)", cat: "Cash flow",
+    formule: "Operating cash flow − capital expenditure",
     unite: "money", graph: "bar", besoins: ["ocf", "capex"],
     calc: (s) => {
       const r = {};
@@ -233,65 +234,86 @@ export const DERIVE = {
     } },
   gross_margin: {
     nom: "Gross margin (%)", cat: "Margins & returns",
+    formule: "Gross profit / revenue × 100",
     unite: "pct", graph: "line", besoins: ["gross_profit", "revenue"],
     calc: (s) => ratioPct(s.gross_profit, s.revenue) },
   operating_margin: {
     nom: "Operating margin (%)", cat: "Margins & returns",
+    formule: "Operating income / revenue × 100",
     unite: "pct", graph: "line", besoins: ["operating_income", "revenue"],
     calc: (s) => ratioPct(s.operating_income, s.revenue) },
   net_margin: {
     nom: "Net margin (%)", cat: "Margins & returns",
+    formule: "Net income / revenue × 100",
     unite: "pct", graph: "line", besoins: ["net_income", "revenue"],
     calc: (s) => ratioPct(s.net_income, s.revenue) },
   fcf_margin: {
     nom: "FCF margin (%)", cat: "Margins & returns",
+    formule: "(Operating cash flow − capex) / revenue × 100",
     unite: "pct", graph: "line", besoins: ["fcf", "revenue"],
     calc: (s) => ratioPct(s.fcf, s.revenue) },
   rd_intensity: {
     nom: "R&D intensity (R&D / revenue %)", cat: "Margins & returns",
+    formule: "R&D expense / revenue × 100",
     unite: "pct", graph: "line", besoins: ["rd", "revenue"],
     calc: (s) => ratioPct(s.rd, s.revenue) },
   roe: {
     nom: "ROE (%)", cat: "Margins & returns",
+    formule: "Net income / shareholders' equity × 100",
+    note: "Equity is a balance-sheet item: taken at period end, never averaged.",
     unite: "pct", graph: "line", besoins: ["net_income", "equity"],
     calc: (s) => ratioPct(s.net_income, s.equity) },
   roa: {
     nom: "ROA (%)", cat: "Margins & returns",
+    formule: "Net income / total assets × 100",
+    note: "Assets are a balance-sheet item: taken at period end, never averaged.",
     unite: "pct", graph: "line", besoins: ["net_income", "assets"],
     calc: (s) => ratioPct(s.net_income, s.assets) },
   roic: {
     nom: "ROIC, approx. (%)", cat: "Margins & returns",
+    formule: "Operating income × (1 − 21%) / (equity + total debt − cash) × 100",
+    note: "Flat 21% tax rate, not the company's effective rate — a trend marker, not an audited figure.",
     unite: "pct", graph: "line",
     besoins: ["operating_income", "equity", "cash", "lt_debt", "short_debt"],
     calc: roic },
   sbc_revenue: {
     nom: "SBC / revenue (%)", cat: "Margins & returns",
+    formule: "Stock-based compensation / revenue × 100",
     unite: "pct", graph: "line", besoins: ["sbc", "revenue"],
     calc: (s) => ratioPct(s.sbc, s.revenue) },
   fcf_conversion: {
     nom: "FCF / net income conversion (%)", cat: "Margins & returns",
+    formule: "(Operating cash flow − capex) / net income × 100",
+    note: "Above 100% means earnings are more than covered by real cash.",
     unite: "pct", graph: "line", besoins: ["fcf", "net_income"],
     calc: (s) => ratioPct(s.fcf, s.net_income) },
   effective_tax: {
     nom: "Effective tax rate (%)", cat: "Margins & returns",
+    formule: "Income tax expense / pre-tax income × 100",
     unite: "pct", graph: "line", besoins: ["income_tax", "pretax_income"],
     calc: (s) => ratioPct(s.income_tax, s.pretax_income) },
   sga_margin: {
     nom: "SG&A / revenue (%)", cat: "Margins & returns",
+    formule: "SG&A expense / revenue × 100",
     unite: "pct", graph: "line", besoins: ["sga", "revenue"],
     calc: (s) => ratioPct(s.sga, s.revenue) },
 
   // ---- Sante & solvabilite ----
   current_ratio: {
     nom: "Current ratio", cat: "Health & solvency",
+    formule: "Current assets / current liabilities",
     unite: "ratio", graph: "line", besoins: ["cur_assets", "cur_liab"],
     calc: (s) => ratio(s.cur_assets, s.cur_liab) },
   interest_coverage: {
     nom: "Interest coverage (EBIT / interest)", cat: "Health & solvency",
+    formule: "Operating income / interest expense",
+    note: "Undefined when interest expense is zero; those periods are dropped.",
     unite: "ratio", graph: "line", besoins: ["operating_income", "interest_expense"],
     calc: (s) => ratio(s.operating_income, s.interest_expense) },
   debt_to_equity: {
     nom: "Debt / equity", cat: "Health & solvency",
+    formule: "(Long-term debt + short-term debt) / shareholders' equity",
+    note: "Missing debt components count as zero; equity must be non-zero.",
     unite: "ratio", graph: "line", besoins: ["lt_debt", "short_debt", "equity"],
     calc: detteCapitaux },
 };

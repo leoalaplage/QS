@@ -3,7 +3,7 @@
 // =====================================================================
 
 import { chargerTableau } from "./qs-parse.js";
-import { analyser } from "./qs-engine.js";
+import { analyser, CRITERES_TRI } from "./qs-engine.js";
 import { dessinerDashboard, dessinerMethodology, csvResultats } from "./qs-dashboard.js";
 import * as cfg from "./qs-config.js";
 import { ECHELLE_PNG } from "./qs-settings.js";
@@ -73,6 +73,17 @@ $("#btn-exemple").addEventListener("click", () => {
   saisie.value = EXEMPLE;
   majEtat("Example");
 });
+
+// ---------------------------------------------------------------------
+// Menu de tri : une entree par colonne du dashboard
+// ---------------------------------------------------------------------
+{
+  const sel = $("#classer");
+  for (const [cle, c] of Object.entries(CRITERES_TRI)) {
+    sel.appendChild(el("option", { value: cle, texte: c.libelle }));
+  }
+  sel.value = "total";
+}
 
 // ---------------------------------------------------------------------
 // Lecture des reglages du formulaire
@@ -158,7 +169,8 @@ $("#btn-generer").addEventListener("click", async () => {
 
   let dashboard, methodology = null;
   try {
-    dashboard = dessinerDashboard(retenus, titres, poids, { preset, echelle: ECHELLE_PNG });
+    const triLibelle = (CRITERES_TRI[o.classerPar] || CRITERES_TRI.total).libelle;
+    dashboard = dessinerDashboard(retenus, titres, poids, { preset, echelle: ECHELLE_PNG, triLibelle });
     if ($("#methodo").checked) methodology = dessinerMethodology(poids, { echelle: ECHELLE_PNG });
   } catch (e) {
     act.cacher();

@@ -19,22 +19,36 @@
 <main>
   <h1>Historical chart as a PNG</h1>
   <p class="intro">
-    Search a company by name or ticker, pick a metric and a period: the chart is
-    drawn from the XBRL data filed with the SEC and shows up right here. Several
-    companies can be overlaid on the same chart.
+    Search companies by name or ticker, stack several metrics on one chart, and
+    read every point by hovering it. Everything is drawn from the XBRL data filed
+    with the SEC.
   </p>
 
   <section class="carte">
+    <!-- 1. Companies -------------------------------------------------- -->
+    <h2>Companies</h2>
+    <div class="champ-recherche" style="max-width:420px">
+      <input type="text" id="recherche" placeholder="Novo Nordisk, ASML, AAPL&hellip;" autocomplete="off">
+      <div id="resultats-recherche" class="suggestions cache"></div>
+    </div>
+    <div id="selection-vide" class="aide" style="margin-top:10px">
+      None selected. Search above, or click a suggestion:
+      <span id="suggestions-rapides"></span>
+    </div>
+    <div id="selection" class="jetons"></div>
+
+    <!-- 2. Metrics ---------------------------------------------------- -->
+    <h2 style="margin-top:24px">Metrics</h2>
+    <div class="ligne-actions" style="margin-top:0">
+      <select id="metrique" style="max-width:420px"></select>
+      <button type="button" id="btn-ajout-metrique">Add metric</button>
+    </div>
+    <div id="metriques" class="jetons"></div>
+    <p class="aide" id="note-axes"></p>
+
+    <!-- 3. Display ---------------------------------------------------- -->
+    <h2 style="margin-top:24px">Display</h2>
     <div class="grille">
-      <div class="champ-recherche">
-        <label for="recherche">Company (name or ticker)</label>
-        <input type="text" id="recherche" placeholder="Novo Nordisk, ASML, AAPL&hellip;" autocomplete="off">
-        <div id="resultats-recherche" class="suggestions cache"></div>
-      </div>
-      <div>
-        <label for="metrique">Metric</label>
-        <select id="metrique"></select>
-      </div>
       <div>
         <label for="periode">Period</label>
         <select id="periode">
@@ -44,18 +58,25 @@
         </select>
       </div>
       <div>
-        <label for="annees">History depth (years)</label>
-        <input type="number" id="annees" min="2" max="40" value="15">
+        <label for="type-graphe">Chart type</label>
+        <select id="type-graphe">
+          <option value="line">Line</option>
+          <option value="bar">Bars</option>
+          <option value="auto">Auto (bars for amounts, line for ratios)</option>
+        </select>
+      </div>
+      <div>
+        <label for="annees">History depth</label>
+        <div class="presets" id="presets-duree"></div>
+        <input type="number" id="annees" min="1" max="40" value="15" style="margin-top:6px">
       </div>
     </div>
-
-    <div id="selection-vide" class="aide" style="margin-top:14px">
-      No company selected. Search above, or click a suggestion:
-      <span id="suggestions-rapides"></span>
+    <div class="cases">
+      <label><input type="checkbox" id="ov-moyenne"> Show average</label>
+      <label><input type="checkbox" id="ov-extremes"> Mark high &amp; low</label>
     </div>
-    <div id="selection" class="jetons"></div>
 
-    <div class="ligne-actions" style="margin-top:18px">
+    <div class="ligne-actions" style="margin-top:20px">
       <button type="button" class="primaire" id="btn-generer">Generate the chart</button>
       <button type="button" class="lien" id="btn-relais">EDGAR relay&hellip;</button>
       <span id="statut" class="chargement cache"><span class="rondelle"></span><span id="statut-texte"></span></span>
@@ -81,6 +102,16 @@
   <section id="sorties"></section>
 
   <section class="carte">
+    <h2>How each metric is computed</h2>
+    <p class="aide">
+      Every figure comes from XBRL tags filed with the SEC — nothing is estimated
+      or modelled. Ratios are computed period by period from the two underlying
+      series, never by mixing periods.
+    </p>
+    <div id="formules"></div>
+  </section>
+
+  <section class="carte">
     <h2>What the data covers</h2>
     <p class="aide">
       Single source: XBRL filings with the SEC. That covers the ~10,400 companies
@@ -95,12 +126,18 @@
       Herm&egrave;s (Paris) cannot be found here, whatever you search for.
     </p>
     <p class="aide">
-      <strong>Quarterly and TTM:</strong> both need detailed quarterly reports
-      (10-Q). Foreign filers often publish an annual report only (20-F), in which
-      case annual is the only period available — and the site says so instead of
-      drawing an empty chart. Since Q4 is never filed in a 10-Q, it is
-      reconstructed by difference with the fiscal year, and that calculation is
-      checked against the years where all four quarters already exist.
+      <strong>Quarterly and TTM:</strong> cash-flow statements are filed
+      <em>cumulatively</em> from the start of the fiscal year (3, 6, 9 then 12
+      months). Discrete quarters are rebuilt by differencing consecutive
+      cumulative filings, and the four quarters of a year are checked against the
+      reported annual total. Where a quarter is both reported directly and
+      rebuildable, the two are compared and any disagreement is reported.
+    </p>
+    <p class="aide">
+      <strong>Comparing a quarter to a year is misleading</strong> for seasonal
+      businesses: Apple collects a large share of its cash in the December
+      quarter, so its quarterly FCF margin runs well above its annual one. Use
+      <strong>TTM</strong> when you want a figure comparable to the annual one.
     </p>
   </section>
 </main>

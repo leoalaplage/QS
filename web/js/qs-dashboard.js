@@ -77,14 +77,21 @@ const COLS = [
 ];
 const LARGEUR_TABLE = COLS.reduce((a, c) => a + c[1], 0);   // 218 mm
 
-export function dessinerDashboard(retenus, tousTitres, poids, { preset = null, echelle = 8 } = {}) {
-  const titresTri = [...retenus].sort((a, b) => a.rang - b.rang);
+export function dessinerDashboard(retenus, tousTitres, poids, {
+  preset = null, echelle = 8, triLibelle = null,
+} = {}) {
+  // On respecte l'ordre recu : c'est le critere de tri choisi par l'utilisateur.
+  // La colonne Rank continue d'afficher le rang dans l'UNIVERS sur le TOTAL --
+  // trier par Quality et lire « #6 » en face du premier, c'est justement
+  // l'information interessante.
+  const titresTri = retenus;
   const aujourdhui = new Date().toISOString().slice(0, 10);
 
   const sous =
     `Universe: ${tousTitres.length} stocks   |   shown: ${titresTri.length}   |   weights ` +
     PILIERS.map((p) => `${p} ${poids[p]}`).join(" / ") +
     (preset ? `   |   preset ${preset}` : "") +
+    (triLibelle ? `   |   sorted by ${triLibelle}` : "") +
     `   |   ${aujourdhui}`;
 
   const H = 5.8;   // hauteur d'une ligne

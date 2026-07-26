@@ -228,25 +228,124 @@ function trierPoints(lignes) {
         FORMES_TRIMESTRIELLES.has(forme) || FORMES_ANNUELLES.has(forme), r.filed || ""];
       garder(`Q${r.start}_${r.end}`, rang, { type: "trimestre", debut, fin, val: r.val, forme });
     }
-    // les cumuls 6 mois / 9 mois sont ignores : ils ne sont ni annuels ni trimestriels
+    // Les cumuls 6 et 9 mois sont conserves a part : ils ne sont ni annuels ni
+    // trimestriels, mais ce sont eux qui permettent de reconstituer les
+    // trimestres d'un tableau de flux (voir trimestresDiscrets).
+    if (d > DUREE_TRIMESTRE[1]) {
+      const rang = [false, FORMES_TRIMESTRIELLES.has(forme) || FORMES_ANNUELLES.has(forme),
+        r.filed || ""];
+      garder(`C${r.start}_${r.end}`, rang, { type: "cumul", debut, fin, val: r.val, forme });
+    }
   }
 
   const tout = [...meilleurs.values()].map((x) => x.point);
+  const tri = (a, b) => a.fin - b.fin;
   return {
     instant,
-    instants: tout.filter((p) => p.type === "instant").sort((a, b) => a.fin - b.fin),
-    annees: tout.filter((p) => p.type === "annee").sort((a, b) => a.fin - b.fin),
-    trimestres: tout.filter((p) => p.type === "trimestre").sort((a, b) => a.fin - b.fin),
+    instants: tout.filter((p) => p.type === "instant").sort(tri),
+    annees: tout.filter((p) => p.type === "annee").sort(tri),
+    trimestres: tout.filter((p) => p.type === "trimestre").sort(tri),
+    // toutes les periodes de flux, cumuls compris
+    durees: tout.filter((p) => p.type !== "instant").sort(tri),
   };
+}
+
+/**
+ * Trimestres DISCRETS, reconstitues a partir de toutes les periodes publiees.
+ *
+ * C'est le point delicat de tout ce fichier. Les societes americaines
+ * publient leur tableau de flux en CUMULE depuis l'ouverture de l'exercice :
+ * le 10-Q du 2e trimestre donne 6 mois, celui du 3e donne 9 mois, le 10-K
+ * donne 12 mois. Ne garder que les periodes de ~90 jours ne ramenait donc
+ * que le PREMIER trimestre fiscal -- d'ou un FCF trimestriel reduit au seul
+ * trimestre de Noel chez Apple, et un TTM vide.
+ *
+ * On regroupe les periodes par date de debut : celles qui partagent un debut
+ * sont des cumuls emboites. Le trimestre isole s'obtient par difference entre
+ * deux cumuls consecutifs, a condition que l'ecart fasse bien un trimestre.
+ *
+ * Le compte de resultat, lui, est souvent publie directement par trimestre.
+ * Les deux chemins coexistent : la valeur publiee telle quelle l'emporte sur
+ * la valeur reconstituee, et quand les deux existent on compare -- un ecart
+ * significatif remonte comme incoherence.
+ *
+ * @returns {Map<string, {val:number, derive:boolean, fin:Date, forme:string}>}
+ */
+function trimestresDiscrets(durees, rapport) {
+  const parDebut = new Map();
+  for (const p of durees) {
+    const cle = p.debut.getTime();
+    if (!parDebut.has(cle)) parDebut.set(cle, []);
+    parDebut.get(cle).push(p);
+  }
+
+  const out = new Map();
+  const poser = (debut, fin, val, derive, forme) => {
+    const cle = cleTrimestre(fin, debut);
+    const actuel = out.get(cle);
+    if (!actuel) { out.set(cle, { val, derive, fin, forme }); return; }
+    if (actuel.derive && !derive) {
+      // une valeur publiee remplace une valeur reconstituee : on en profite
+      // pour verifier que les deux disent la meme chose
+      const base = Math.abs(val) || 1;
+      if (Math.abs(actuel.val - val) > base * 0.01) {
+        rapport.incoherences.push(
+          `Quarter ${cle}: the reported figure (${val.toExponential(3)}) and the one ` +
+          `reconstructed from cumulative filings (${actuel.val.toExponential(3)}) ` +
+          "disagree; the reported figure is used."
+        );
+      }
+      out.set(cle, { val, derive, fin, forme });
+    }
+  };
+
+  for (const groupe of parDebut.values()) {
+    groupe.sort((a, b) => a.fin - b.fin);
+    let precedent = null;
+    for (const p of groupe) {
+      if (!precedent) {
+        const d = jours(p.debut, p.fin);
+        if (d >= DUREE_TRIMESTRE[0] && d <= DUREE_TRIMESTRE[1]) poser(p.debut, p.fin, p.val, false, p.forme);
+      } else {
+        // ecart entre deux cumuls consecutifs = le trimestre qui les separe
+        const delta = jours(precedent.fin, p.fin);
+        if (delta >= DUREE_TRIMESTRE[0] && delta <= DUREE_TRIMESTRE[1]) {
+          poser(precedent.fin, p.fin, p.val - precedent.val, true, p.forme);
+        }
+      }
+      precedent = p;
+    }
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------
 // Cles de periode : trimestre CIVIL de la date de fin (convention EDGAR)
 // ---------------------------------------------------------------------
 const trimestreCivil = (d) => Math.floor(d.getUTCMonth() / 3) + 1;
+const cleDe = (d) => `${d.getUTCFullYear()}Q${trimestreCivil(d)}`;
 
-/** "2025Q3" pour le trimestriel/TTM, "2025" pour l'annuel. */
-const cleTrimestre = (fin) => `${fin.getUTCFullYear()}Q${trimestreCivil(fin)}`;
+/**
+ * Trimestre civil d'une PERIODE, determine par son MILIEU et non par sa fin.
+ *
+ * Les exercices americains se cloturent un samedi proche de la fin de
+ * trimestre, parfois un ou deux jours apres : le trimestre de mars 2023
+ * d'Apple court du 1er janvier au 1er AVRIL. Le classer sur sa date de fin
+ * le renvoyait en Q2, ou il ecrasait le vrai Q2 et laissait Q1 vide -- ce
+ * qui supprimait ensuite les quatre points TTM de l'annee. EDGAR lui-meme
+ * etiquette cette periode CY2023Q1.
+ */
+const cleTrimestre = (fin, debut = null) => {
+  if (!debut) return cleDe(fin);
+  return cleDe(new Date((debut.getTime() + fin.getTime()) / 2));
+};
+
+/**
+ * Trimestre civil d'un INSTANT (poste de bilan). Meme decalage possible :
+ * une photo au 1er avril appartient au trimestre de mars. On recule de deux
+ * semaines avant de decider.
+ */
+const cleInstant = (fin) => cleDe(new Date(fin.getTime() - 14 * 86400000));
 
 /** Coordonnee X et etiquette d'une cle de periode. */
 export function decoderCle(cle) {
@@ -275,7 +374,8 @@ function serieAnnuelle(tri, rapport) {
   if (tri.instant && !Object.keys(serie).length) {
     // repli : aucune photo estampillee rapport annuel, on prend le Q4 civil
     for (const p of tri.instants) {
-      if (trimestreCivil(p.fin) === 4) { serie[p.fin.getUTCFullYear()] = p.val; rapport.formes.add(p.forme); }
+      const c = cleInstant(p.fin);
+      if (c.endsWith("Q4")) { serie[parseInt(c, 10)] = p.val; rapport.formes.add(p.forme); }
     }
   }
   return serie;
@@ -291,42 +391,31 @@ function serieTrimestrielle(tri, rapport) {
 
   if (tri.instant) {
     for (const p of tri.instants) {
-      serie[cleTrimestre(p.fin)] = p.val;
+      serie[cleInstant(p.fin)] = p.val;
       rapport.formes.add(p.forme);
     }
     return serie;
   }
 
-  for (const p of tri.trimestres) {
-    serie[cleTrimestre(p.fin)] = p.val;
-    rapport.formes.add(p.forme);
+  const quarts = trimestresDiscrets(tri.durees, rapport);
+  for (const [cle, q] of quarts) {
+    serie[cle] = q.val;
+    rapport.formes.add(q.forme);
+    if (q.derive) rapport.derives.push(cle);
   }
 
-  // Derivation du trimestre manquant + controle de coherence
+  // Controle : les 4 trimestres d'un exercice doivent redonner l'annuel publie
   for (const an of tri.annees) {
-    const dedans = tri.trimestres.filter((q) => q.debut >= an.debut && q.fin <= an.fin);
-    if (dedans.length === 4) {
-      const somme = dedans.reduce((a, q) => a + q.val, 0);
-      const ecart = an.val - somme;
-      // tolerance : 0,5 % de l'exercice (arrondis de publication)
-      if (Math.abs(ecart) > Math.abs(an.val) * 0.005) {
-        rapport.incoherences.push(
-          `Fiscal year ended ${an.fin.toISOString().slice(0, 10)}: the four quarters ` +
-          `sum to ${(ecart / Math.abs(an.val) * 100).toFixed(1)}% away from the reported annual total.`
-        );
-      }
-    } else if (dedans.length === 3) {
-      const somme = dedans.reduce((a, q) => a + q.val, 0);
-      const dernier = dedans[dedans.length - 1];
-      const trou = jours(dernier.fin, an.fin);
-      // le trou restant doit bien faire un trimestre
-      if (trou >= DUREE_TRIMESTRE[0] && trou <= DUREE_TRIMESTRE[1]) {
-        const cle = cleTrimestre(an.fin);
-        if (!(cle in serie)) {
-          serie[cle] = an.val - somme;
-          rapport.derives.push(cle);
-        }
-      }
+    const dedans = [...quarts.values()].filter((q) => q.fin > an.debut && q.fin <= an.fin);
+    if (dedans.length !== 4) continue;
+    const somme = dedans.reduce((a, q) => a + q.val, 0);
+    const ecart = an.val - somme;
+    // tolerance : 0,5 % de l'exercice (arrondis de publication)
+    if (Math.abs(ecart) > Math.abs(an.val) * 0.005) {
+      rapport.incoherences.push(
+        `Fiscal year ended ${an.fin.toISOString().slice(0, 10)}: the four quarters ` +
+        `sum to ${(ecart / Math.abs(an.val) * 100).toFixed(1)}% away from the reported annual total.`
+      );
     }
   }
   return serie;

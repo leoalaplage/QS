@@ -1,19 +1,25 @@
 // =====================================================================
 //  QS Chart - Trace du graphe sur <canvas>
-//  Reprend le rendu de tracer() (matplotlib) de qs_chart.py : memes
-//  couleurs, memes formats d'etiquettes, meme CAGR en legende, barres pour
-//  une seule entreprise, lignes des qu'il y en a plusieurs.
-//  Etendu : axe X en trimestres (X non entier) et devises autres que l'USD.
+//  Derive de tracer() (matplotlib) de qs_chart.py, puis etendu :
+//    - plusieurs societes ET plusieurs metriques sur un meme graphe ;
+//    - double axe Y quand deux familles d'unites cohabitent ($ et %) ;
+//    - courbes ou barres, au choix ;
+//    - superpositions moyenne / plus haut / plus bas ;
+//    - renvoie sa geometrie, pour que l'interface puisse retrouver le
+//      point survole par la souris.
 // =====================================================================
 
-import { decoderCle, MODES } from "./qs-chart-edgar.js";
-
-export const COULEURS = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#0891b2"];
+export const COULEURS = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#0891b2",
+  "#db2777", "#65a30d"];
 
 const FIG_L = 11, FIG_H = 6;   // pouces, comme figsize=(11, 6)
 
 const SYMBOLES = { USD: "$", EUR: "€", GBP: "£", JPY: "¥", CHF: "CHF ", CAD: "C$", AUD: "A$" };
 const symbole = (devise) => SYMBOLES[devise] || (devise ? `${devise} ` : "$");
+
+// Familles d'unites : deux metriques de la meme famille partagent un axe.
+export const familleUnite = (u) => (u === "money" || u === "per_share" ? "money"
+  : u === "pct" ? "pct" : u === "shares" ? "shares" : "ratio");
 
 // ---------------------------------------------------------------------
 // Formatage des valeurs
@@ -37,7 +43,7 @@ export function fmtShares(v) {
 
 const fmtG = (v) => String(parseFloat(Number(v).toPrecision(6)));
 
-/** Etiquette au-dessus d'un point / d'une barre. */
+/** Etiquette d'une valeur, selon l'unite de sa metrique. */
 export function etiquetteValeur(v, unite, devise) {
   switch (unite) {
     case "money": return fmtMontant(v, devise);
@@ -45,12 +51,10 @@ export function etiquetteValeur(v, unite, devise) {
     case "per_share": return `${symbole(devise)}${v.toFixed(2)}`;
     case "shares": return fmtShares(v);
     case "ratio": return v.toFixed(2);
-    case "number": return fmtG(v);
-    default: return v.toFixed(2);
+    default: return fmtG(v);
   }
 }
 
-/** Etiquette de graduation de l'axe Y (decimales adaptees au pas). */
 function etiquetteAxe(v, unite, pas, devise) {
   switch (unite) {
     case "money": return fmtMontant(v, devise);
@@ -66,13 +70,12 @@ function etiquetteAxe(v, unite, pas, devise) {
 }
 
 // ---------------------------------------------------------------------
-// Graduations "jolies" facon MaxNLocator
+// Graduations
 // ---------------------------------------------------------------------
 /**
- * Choisit un pas "rond" donnant un nombre de graduations proche de la cible.
- * On evalue les candidats au lieu d'arrondir au superieur : un pas brut a
- * peine au-dessus d'un palier (250 000 001 pour un palier a 2,5e8) doublerait
- * sinon la graduation et viderait le graphe de ses reperes.
+ * Pas "rond" donnant un nombre de graduations proche de la cible. On evalue
+ * les candidats au lieu d'arrondir au superieur : un pas brut a peine
+ * au-dessus d'un palier doublerait sinon la graduation et viderait le graphe.
  */
 function pasJoli(brut, cible) {
   const exposant = Math.floor(Math.log10(brut));
@@ -100,7 +103,7 @@ function graduations(min, max, cible = 9) {
   return { ticks, pas };
 }
 
-/** Graduations de l'axe X : toujours des annees entieres, meme en trimestriel. */
+/** Axe X : toujours des annees entieres, meme en trimestriel. */
 function graduationsAnnees(min, max, maxTicks = 11) {
   const etendue = Math.max(1, max - min);
   let pas = 1;
@@ -121,20 +124,38 @@ export function cagr(points) {
   return Math.pow(b.y / a.y, 1 / n) - 1;
 }
 
+/** Statistiques d'une serie, pour les superpositions et l'infobulle. */
+export function stats(points) {
+  if (!points.length) return null;
+  const ys = points.map((p) => p.y);
+  const somme = ys.reduce((a, b) => a + b, 0);
+  let haut = points[0], bas = points[0];
+  for (const p of points) {
+    if (p.y > haut.y) haut = p;
+    if (p.y < bas.y) bas = p;
+  }
+  return { moyenne: somme / ys.length, haut, bas, dernier: points[points.length - 1] };
+}
+
 // ---------------------------------------------------------------------
 // Trace
 // ---------------------------------------------------------------------
 /**
- * @param {object} meta   {nom, unite, graph}
- * @param {object} seriesParTicker  {TICKER: {clePeriode: valeur}}
- * @param {object} noms   {TICKER: raison sociale}
- * @param {object} o      {anneesFenetre, mode, devise, dpi}
- * @returns {HTMLCanvasElement}
+ * @param {object} o
+ *   series   : [{id, libelle, points:[{x,etiquette,y}], unite, devise, couleur, type}]
+ *   titre    : titre du graphe
+ *   sousAxeX : libelle de l'axe X
+ *   overlays : {moyenne:bool, extremes:bool}
+ * @returns {{canvas, geo}} geo sert au survol : il porte les fonctions de
+ *          conversion valeur <-> pixel et les points effectivement traces.
  */
-export function tracer(meta, seriesParTicker, noms, {
-  anneesFenetre = 15, mode = MODES.ANNUEL, devise = "USD", dpi = 200,
+export function tracer({
+  series, titre = "", sousAxeX = "Fiscal year", overlays = {}, dpi = 200,
 } = {}) {
-  const U = dpi / 72;                       // pixels par point typographique
+  const visibles = series.filter((s) => s.points && s.points.length);
+  if (!visibles.length) throw new Error("No data to plot.");
+
+  const U = dpi / 72;
   const L = Math.round(FIG_L * dpi);
   const H = Math.round(FIG_H * dpi);
 
@@ -150,153 +171,174 @@ export function tracer(meta, seriesParTicker, noms, {
     c.font = `${gras ? "bold " : ""}${pt * U}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
   };
 
-  const unite = meta.unite;
-  const tickers = Object.keys(seriesParTicker);
-  const multi = tickers.length > 1;
-  const trimestriel = mode !== MODES.ANNUEL;
-  // en trimestriel les barres deviennent illisibles : on passe en lignes
-  const typeGraph = (multi || trimestriel) ? "line" : meta.graph;
+  // -- repartition sur un ou deux axes ---------------------------------
+  const familles = [...new Set(visibles.map((s) => familleUnite(s.unite)))];
+  const axes = familles.slice(0, 2);
+  for (const s of visibles) s.axe = Math.max(0, axes.indexOf(familleUnite(s.unite)));
 
-  // -- fenetre temporelle : N dernieres annees, union des tickers ------
-  let xMaxD = -Infinity;
-  for (const s of Object.values(seriesParTicker)) {
-    for (const k of Object.keys(s)) xMaxD = Math.max(xMaxD, decoderCle(k).x);
-  }
-  if (!isFinite(xMaxD)) throw new Error("No data to plot.");
-  const xMinFenetre = xMaxD - anneesFenetre + (trimestriel ? 0.75 : 1);
-
-  // -- points retenus, par ticker --------------------------------------
-  const jeux = [];
-  tickers.forEach((tk, i) => {
-    const serie = seriesParTicker[tk];
-    const points = Object.keys(serie)
-      .map((k) => ({ ...decoderCle(k), y: serie[k] }))
-      .filter((p) => p.x >= xMinFenetre - 1e-9 && p.y !== null && p.y !== undefined && isFinite(p.y))
-      .sort((a, b) => a.x - b.x);
-    if (!points.length) return;
-    const g = ["money", "per_share", "shares"].includes(unite) ? cagr(points) : null;
-    jeux.push({
-      ticker: tk,
-      points,
-      couleur: COULEURS[i % COULEURS.length],
-      libelle: tk + (g !== null ? `  (CAGR ${g >= 0 ? "+" : ""}${(g * 100).toFixed(1)}%)` : ""),
-    });
-  });
-  if (!jeux.length) throw new Error("No data within the requested window.");
-
-  // -- bornes de donnees ------------------------------------------------
-  let xMinD = Infinity, yMinD = Infinity, yMaxD = -Infinity;
-  xMaxD = -Infinity;
-  for (const j of jeux) {
-    for (const p of j.points) {
+  // -- bornes ----------------------------------------------------------
+  let xMinD = Infinity, xMaxD = -Infinity;
+  const bornesY = axes.map(() => ({ min: Infinity, max: -Infinity }));
+  for (const s of visibles) {
+    for (const p of s.points) {
       xMinD = Math.min(xMinD, p.x); xMaxD = Math.max(xMaxD, p.x);
-      yMinD = Math.min(yMinD, p.y); yMaxD = Math.max(yMaxD, p.y);
+      const b = bornesY[s.axe];
+      b.min = Math.min(b.min, p.y); b.max = Math.max(b.max, p.y);
     }
   }
-  const pasX = trimestriel ? 0.25 : 1;
-  const largeurBarre = 0.62 * pasX;
-  if (typeGraph === "bar") {
-    xMinD -= largeurBarre / 2;
-    xMaxD += largeurBarre / 2;
-    yMinD = Math.min(yMinD, 0);            // un barplot inclut toujours 0
-    yMaxD = Math.max(yMaxD, 0);
+
+  const pasX = visibles.some((s) => s.points.length > 1)
+    ? Math.min(...visibles.filter((s) => s.points.length > 1)
+        .map((s) => Math.min(...s.points.slice(1).map((p, i) => p.x - s.points[i].x))))
+    : 1;
+
+  const barres = visibles.filter((s) => s.type === "bar");
+  const largeurGroupe = 0.68 * (pasX || 1);
+  if (barres.length) {
+    xMinD -= largeurGroupe / 2;
+    xMaxD += largeurGroupe / 2;
+    for (const s of barres) {
+      const b = bornesY[s.axe];
+      b.min = Math.min(b.min, 0);
+      b.max = Math.max(b.max, 0);
+    }
   }
+
   const etX = (xMaxD - xMinD) || 1;
   const xMin = xMinD - 0.03 * etX, xMax = xMaxD + 0.03 * etX;
-  const etY = (yMaxD - yMinD) || Math.abs(yMaxD) || 1;
-  // Les barres "collent" a leur base (sticky edges de matplotlib) : pas de
-  // marge sous 0 quand tout est positif, pas de marge au-dessus quand tout
-  // est negatif -- sinon l'axe flotte sous les barres.
-  const colleBas = typeGraph === "bar" && yMinD === 0;
-  const colleHaut = typeGraph === "bar" && yMaxD === 0;
-  // etiquettes de valeur : seulement quand elles restent lisibles
-  const nbPoints = jeux.reduce((a, j) => a + j.points.length, 0);
-  const montreEtiquettes = !multi && nbPoints <= 22;
-  const yMin = colleBas ? 0 : yMinD - 0.05 * etY;
-  const yMax = colleHaut ? 0 : yMaxD + (montreEtiquettes ? 0.13 : 0.08) * etY;
 
-  const { ticks: ticksY, pas } = graduations(yMin, yMax);
+  const nbPoints = visibles.reduce((a, s) => a + s.points.length, 0);
+  const montreEtiquettes = visibles.length === 1 && nbPoints <= 22;
+
+  const echelles = bornesY.map((b, i) => {
+    const etY = (b.max - b.min) || Math.abs(b.max) || 1;
+    const seulementBarres = visibles.filter((s) => s.axe === i).every((s) => s.type === "bar");
+    const colleBas = seulementBarres && b.min === 0;
+    const colleHaut = seulementBarres && b.max === 0;
+    const min = colleBas ? 0 : b.min - 0.05 * etY;
+    const max = colleHaut ? 0 : b.max + (montreEtiquettes ? 0.13 : 0.08) * etY;
+    return { min, max, ...graduations(min, max) };
+  });
+
   const ticksX = graduationsAnnees(Math.ceil(xMin), Math.floor(xMax));
 
-  // -- geometrie des axes ------------------------------------------------
+  // -- geometrie -------------------------------------------------------
+  const uniteAxe = (i) => visibles.find((s) => s.axe === i);
   police(10);
-  let largeurEtiqY = 0;
-  for (const t of ticksY) {
-    largeurEtiqY = Math.max(largeurEtiqY, c.measureText(etiquetteAxe(t, unite, pas, devise)).width);
-  }
+  const largeurEtiq = echelles.map((e, i) => {
+    const s = uniteAxe(i);
+    return Math.max(...e.ticks.map((t) => c.measureText(etiquetteAxe(t, s.unite, e.pas, s.devise)).width));
+  });
 
-  const gauche = largeurEtiqY + 12 * U;
-  const droite = L - 10 * U;
-  const haut = 14 * U + 14 * U + 10 * U;             // titre (14pt) + pad
-  const bas = H - (10 * U + 10 * U + 14 * U + 12 * U); // ticks + xlabel + source
+  const gauche = largeurEtiq[0] + 12 * U;
+  const droite = L - (echelles.length > 1 ? largeurEtiq[1] + 14 * U : 10 * U);
+  const haut = 38 * U;
+  const bas = H - 46 * U;
 
   const xPx = (x) => gauche + ((x - xMin) / (xMax - xMin)) * (droite - gauche);
-  const yPx = (y) => bas - ((y - yMin) / (yMax - yMin)) * (bas - haut);
+  const yPxAxe = (y, i) => {
+    const e = echelles[i];
+    return bas - ((y - e.min) / (e.max - e.min)) * (bas - haut);
+  };
 
-  // -- grille horizontale ------------------------------------------------
+  // -- grille ----------------------------------------------------------
   c.save();
   c.strokeStyle = "rgba(176,176,176,0.5)";
   c.lineWidth = 0.6 * U;
   c.setLineDash([5 * U, 3 * U]);
-  for (const t of ticksY) {
-    const y = yPx(t);
-    c.beginPath();
-    c.moveTo(gauche, y);
-    c.lineTo(droite, y);
-    c.stroke();
+  for (const t of echelles[0].ticks) {
+    const y = yPxAxe(t, 0);
+    c.beginPath(); c.moveTo(gauche, y); c.lineTo(droite, y); c.stroke();
   }
   c.restore();
 
-  // -- ligne zero si valeurs negatives -----------------------------------
-  if (yMin < 0 && yMax > 0) {
-    c.strokeStyle = "#94a3b8";
-    c.lineWidth = 0.8 * U;
-    c.beginPath();
-    c.moveTo(gauche, yPx(0));
-    c.lineTo(droite, yPx(0));
-    c.stroke();
+  for (let i = 0; i < echelles.length; i++) {
+    if (echelles[i].min < 0 && echelles[i].max > 0) {
+      c.strokeStyle = "#94a3b8"; c.lineWidth = 0.8 * U;
+      const y = yPxAxe(0, i);
+      c.beginPath(); c.moveTo(gauche, y); c.lineTo(droite, y); c.stroke();
+      break;
+    }
   }
 
-  // -- series ------------------------------------------------------------
+  // -- series ----------------------------------------------------------
   const etiquettes = [];
-  for (const j of jeux) {
-    if (typeGraph === "bar") {
+  const largeurBarre = barres.length ? largeurGroupe / barres.length : 0;
+
+  visibles.forEach((s) => {
+    const y = (v) => yPxAxe(v, s.axe);
+    if (s.type === "bar") {
+      const rang = barres.indexOf(s);
       const w = (largeurBarre / (xMax - xMin)) * (droite - gauche);
-      const y0 = yPx(0);
-      c.fillStyle = j.couleur;
+      const decalage = (rang - (barres.length - 1) / 2) * w;
+      const y0 = y(0);
+      c.fillStyle = s.couleur;
       c.strokeStyle = "#ffffff";
       c.lineWidth = 0.5 * U;
-      for (const p of j.points) {
-        const y = yPx(p.y), cx = xPx(p.x);
-        c.fillRect(cx - w / 2, Math.min(y, y0), w, Math.abs(y - y0));
-        c.strokeRect(cx - w / 2, Math.min(y, y0), w, Math.abs(y - y0));
+      for (const p of s.points) {
+        const py = y(p.y), cx = xPx(p.x) + decalage;
+        c.fillRect(cx - w / 2, Math.min(py, y0), w, Math.abs(py - y0));
+        if (w > 3 * U) c.strokeRect(cx - w / 2, Math.min(py, y0), w, Math.abs(py - y0));
         if (montreEtiquettes) {
-          etiquettes.push({
-            x: cx, y: p.y >= 0 ? y - 4 * U : y + 12 * U,
-            texte: etiquetteValeur(p.y, unite, devise),
-          });
+          etiquettes.push({ x: cx, y: p.y >= 0 ? py - 4 * U : py + 12 * U,
+            texte: etiquetteValeur(p.y, s.unite, s.devise) });
         }
       }
     } else {
-      c.strokeStyle = j.couleur;
-      c.fillStyle = j.couleur;
+      c.strokeStyle = s.couleur;
+      c.fillStyle = s.couleur;
       c.lineWidth = 2.2 * U;
       c.lineJoin = "round";
       c.beginPath();
-      j.points.forEach((p, k) => {
-        const px = xPx(p.x), py = yPx(p.y);
+      s.points.forEach((p, k) => {
+        const px = xPx(p.x), py = y(p.y);
         if (k === 0) c.moveTo(px, py); else c.lineTo(px, py);
       });
       c.stroke();
-      // marqueurs : allegés quand les points sont nombreux (trimestriel long)
-      const rayon = j.points.length > 40 ? 1.6 : 2.5;
-      for (const p of j.points) {
-        const px = xPx(p.x), py = yPx(p.y);
-        c.beginPath();
-        c.arc(px, py, rayon * U, 0, Math.PI * 2);
-        c.fill();
+      const rayon = s.points.length > 40 ? 1.6 : 2.5;
+      for (const p of s.points) {
+        c.beginPath(); c.arc(xPx(p.x), y(p.y), rayon * U, 0, Math.PI * 2); c.fill();
         if (montreEtiquettes) {
-          etiquettes.push({ x: px, y: py - 8 * U, texte: etiquetteValeur(p.y, unite, devise) });
+          etiquettes.push({ x: xPx(p.x), y: y(p.y) - 8 * U,
+            texte: etiquetteValeur(p.y, s.unite, s.devise) });
+        }
+      }
+    }
+  });
+
+  // -- superpositions statistiques -------------------------------------
+  if (overlays.moyenne || overlays.extremes) {
+    for (const s of visibles) {
+      const st = stats(s.points);
+      if (!st) continue;
+      const y = (v) => yPxAxe(v, s.axe);
+      if (overlays.moyenne) {
+        c.save();
+        c.strokeStyle = s.couleur;
+        c.globalAlpha = 0.55;
+        c.lineWidth = 1.4 * U;
+        c.setLineDash([7 * U, 4 * U]);
+        const ym = y(st.moyenne);
+        c.beginPath(); c.moveTo(gauche, ym); c.lineTo(droite, ym); c.stroke();
+        c.restore();
+        police(8);
+        c.fillStyle = s.couleur;
+        c.textAlign = "left";
+        c.fillText(`avg ${etiquetteValeur(st.moyenne, s.unite, s.devise)}`, gauche + 4 * U, ym - 7 * U);
+        c.textAlign = "left";
+      }
+      if (overlays.extremes) {
+        police(8, true);
+        for (const [pt, tag] of [[st.haut, "high"], [st.bas, "low"]]) {
+          const px = xPx(pt.x), py = y(pt.y);
+          c.beginPath();
+          c.arc(px, py, 4.5 * U, 0, Math.PI * 2);
+          c.strokeStyle = s.couleur; c.lineWidth = 1.6 * U; c.stroke();
+          c.fillStyle = s.couleur;
+          c.textAlign = "center";
+          c.fillText(`${tag} ${etiquetteValeur(pt.y, s.unite, s.devise)}`,
+            px, tag === "high" ? py - 13 * U : py + 13 * U);
+          c.textAlign = "left";
         }
       }
     }
@@ -308,55 +350,47 @@ export function tracer(meta, seriesParTicker, noms, {
   for (const e of etiquettes) c.fillText(e.texte, e.x, e.y);
   c.textAlign = "left";
 
-  // -- axes (spines gauche + bas seulement) -------------------------------
+  // -- axes ------------------------------------------------------------
   c.strokeStyle = "#000000";
   c.lineWidth = 0.8 * U;
   c.beginPath();
-  c.moveTo(gauche, haut);
-  c.lineTo(gauche, bas);
-  c.lineTo(droite, bas);
+  c.moveTo(gauche, haut); c.lineTo(gauche, bas); c.lineTo(droite, bas);
+  if (echelles.length > 1) { c.moveTo(droite, haut); c.lineTo(droite, bas); }
   c.stroke();
 
-  // graduations Y
   police(10);
-  c.fillStyle = "#475569";
   c.strokeStyle = "#475569";
-  c.lineWidth = 0.8 * U;
-  c.textAlign = "right";
-  for (const t of ticksY) {
-    const y = yPx(t);
-    c.beginPath();
-    c.moveTo(gauche - 3.5 * U, y);
-    c.lineTo(gauche, y);
-    c.stroke();
-    c.fillText(etiquetteAxe(t, unite, pas, devise), gauche - 6 * U, y);
-  }
-  // graduations X
+  echelles.forEach((e, i) => {
+    const s = uniteAxe(i);
+    c.fillStyle = echelles.length > 1 ? s.couleur : "#475569";
+    c.textAlign = i === 0 ? "right" : "left";
+    for (const t of e.ticks) {
+      const y = yPxAxe(t, i);
+      c.beginPath();
+      c.moveTo(i === 0 ? gauche - 3.5 * U : droite, y);
+      c.lineTo(i === 0 ? gauche : droite + 3.5 * U, y);
+      c.stroke();
+      c.fillText(etiquetteAxe(t, s.unite, e.pas, s.devise), i === 0 ? gauche - 6 * U : droite + 6 * U, y);
+    }
+  });
+
+  c.fillStyle = "#475569";
   c.textAlign = "center";
   for (const t of ticksX) {
     const x = xPx(t);
     if (x < gauche - 1 || x > droite + 1) continue;
-    c.beginPath();
-    c.moveTo(x, bas);
-    c.lineTo(x, bas + 3.5 * U);
-    c.stroke();
+    c.beginPath(); c.moveTo(x, bas); c.lineTo(x, bas + 3.5 * U); c.stroke();
     c.fillText(String(t), x, bas + 12 * U);
   }
 
-  // -- titre, libelle d'axe, source ---------------------------------------
-  const suffixe = mode === MODES.TTM ? " - TTM" : mode === MODES.TRIMESTRE ? " - quarterly" : "";
-  const titre = multi
-    ? `${meta.nom}${suffixe} - ${tickers.join(", ")}`
-    : `${meta.nom}${suffixe} - ${noms[tickers[0]] || tickers[0]} (${tickers[0]})`;
+  // -- titre, libelles, source -----------------------------------------
   police(14, true);
   c.fillStyle = "#0f172a";
-  c.textAlign = "center";
-  c.fillText(titre, (gauche + droite) / 2, haut - 14 * U);
+  c.fillText(titre, (gauche + droite) / 2, 16 * U);
 
   police(10);
   c.fillStyle = "#475569";
-  c.fillText(trimestriel ? "Period (calendar quarter of period end)" : "Fiscal year",
-    (gauche + droite) / 2, bas + 28 * U);
+  c.fillText(sousAxeX, (gauche + droite) / 2, bas + 28 * U);
 
   police(8);
   c.fillStyle = "#94a3b8";
@@ -364,34 +398,42 @@ export function tracer(meta, seriesParTicker, noms, {
   c.fillText("Source: SEC EDGAR (XBRL)  -  QS Chart", L - 0.01 * L, H - 0.02 * H);
   c.textAlign = "left";
 
-  // -- legende (coin haut le plus vide) -----------------------------------
+  // -- legende ---------------------------------------------------------
   police(9);
   const hLigne = 13 * U;
-  let largeur = 0;
-  for (const j of jeux) largeur = Math.max(largeur, c.measureText(j.libelle).width);
-
+  const largeurLeg = Math.max(...visibles.map((s) => c.measureText(s.libelle).width));
   let sommeG = 0, nG = 0, sommeD = 0, nD = 0;
   const milieu = (xMin + xMax) / 2;
-  for (const j of jeux) {
-    for (const p of j.points) {
-      if (p.x < milieu) { sommeG += p.y; nG++; } else { sommeD += p.y; nD++; }
+  for (const s of visibles) {
+    const e = echelles[s.axe];
+    for (const p of s.points) {
+      const norme = (p.y - e.min) / ((e.max - e.min) || 1);
+      if (p.x < milieu) { sommeG += norme; nG++; } else { sommeD += norme; nD++; }
     }
   }
   const gaucheEstBas = (nG ? sommeG / nG : 0) <= (nD ? sommeD / nD : 0);
-  const xLeg = gaucheEstBas ? gauche + 12 * U : droite - largeur - 26 * U;
+  const xLeg = gaucheEstBas ? gauche + 12 * U : droite - largeurLeg - 26 * U;
   let yLeg = haut + 10 * U;
-
-  for (const j of jeux) {
-    c.strokeStyle = j.couleur;
+  for (const s of visibles) {
+    c.strokeStyle = s.couleur;
     c.lineWidth = 2.2 * U;
-    c.beginPath();
-    c.moveTo(xLeg, yLeg);
-    c.lineTo(xLeg + 16 * U, yLeg);
-    c.stroke();
+    c.beginPath(); c.moveTo(xLeg, yLeg); c.lineTo(xLeg + 16 * U, yLeg); c.stroke();
     c.fillStyle = "#333333";
-    c.fillText(j.libelle, xLeg + 21 * U, yLeg);
+    c.fillText(s.libelle, xLeg + 21 * U, yLeg);
     yLeg += hLigne;
   }
 
-  return canvas;
+  // -- geometrie renvoyee pour le survol --------------------------------
+  const geo = {
+    L, H, gauche, droite, haut, bas, xMin, xMax,
+    series: visibles.map((s) => ({
+      id: s.id, libelle: s.libelle, couleur: s.couleur, unite: s.unite, devise: s.devise,
+      points: s.points.map((p) => ({ ...p, px: xPx(p.x), py: yPxAxe(p.y, s.axe) })),
+    })),
+    // abscisses distinctes, pour caler l'infobulle sur une periode
+    abscisses: [...new Set(visibles.flatMap((s) => s.points.map((p) => p.x)))].sort((a, b) => a - b),
+    xPx,
+  };
+
+  return { canvas, geo };
 }

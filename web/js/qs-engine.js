@@ -311,10 +311,55 @@ export function appliquerFiltres(titres, o = {}) {
     res = res.filter((t) => (t.piliers[pilier] ?? 0) >= Number(seuil));
   }
 
-  const cleTri = o.classerPar === "conviction" ? "conviction" : "total";
-  res = [...res].sort((a, b) => (b[cleTri] ?? -1) - (a[cleTri] ?? -1));
+  res = trier(res, o.classerPar || "total");
   if (o.top) res = res.slice(0, Number(o.top));
   return res;
+}
+
+// ---------------------------------------------------------------------
+// Tri : toutes les colonnes du dashboard sont utilisables
+//   valeur : ce qu'on compare
+//   sens   : -1 = decroissant (le meilleur en haut), +1 = croissant
+// ---------------------------------------------------------------------
+const RANG_NOTES = Object.fromEntries(cfg.GRILLE_NOTES.map(([g], i) => [g, i]));
+
+export const CRITERES_TRI = {
+  total: { libelle: "TOTAL", valeur: (t) => t.total, sens: -1 },
+  conviction: { libelle: "Risk-adjusted score", valeur: (t) => t.conviction, sens: -1 },
+  Quality: { libelle: "Quality pillar", valeur: (t) => t.piliers.Quality, sens: -1 },
+  Health: { libelle: "Health pillar", valeur: (t) => t.piliers.Health, sens: -1 },
+  Growth: { libelle: "Growth pillar", valeur: (t) => t.piliers.Growth, sens: -1 },
+  Value: { libelle: "Value pillar", valeur: (t) => t.piliers.Value, sens: -1 },
+  note: {
+    libelle: "Grade (A+ first)", sens: 1,
+    // NR n'est pas une note : il passe derriere toutes les autres
+    valeur: (t) => (t.note in RANG_NOTES ? RANG_NOTES[t.note] : 99),
+  },
+  valuation: { libelle: "Valuation (Attractive first)", valeur: (t) => t.valo_niveau, sens: 1 },
+  couverture: { libelle: "Data coverage", valeur: (t) => t.couverture, sens: -1 },
+  alertes: { libelle: "Alerts (fewest first)", valeur: (t) => t.alertes, sens: 1 },
+  cap: { libelle: "Market cap", valeur: (t) => t.Cap, sens: -1 },
+  rang_secteur: { libelle: "Rank within sector", valeur: (t) => t.rang_secteur, sens: 1 },
+  ticker: { libelle: "Ticker (A→Z)", valeur: (t) => t.Ticker, sens: 1, texte: true },
+  secteur: { libelle: "Sector (A→Z)", valeur: (t) => t.Secteur, sens: 1, texte: true },
+};
+
+/**
+ * Trie selon un critere. Les valeurs absentes sont toujours reléguées en fin
+ * de liste, quel que soit le sens du tri : une donnee manquante n'est ni une
+ * bonne ni une mauvaise nouvelle, elle ne doit pas remonter par accident.
+ */
+export function trier(titres, critere) {
+  const c = CRITERES_TRI[critere] || CRITERES_TRI.total;
+  const absent = (v) => v === null || v === undefined || (typeof v === "number" && !isFinite(v));
+  return [...titres].sort((a, b) => {
+    const va = c.valeur(a), vb = c.valeur(b);
+    if (absent(va) && absent(vb)) return 0;
+    if (absent(va)) return 1;
+    if (absent(vb)) return -1;
+    if (c.texte) return c.sens * String(va).localeCompare(String(vb), "en");
+    return c.sens * (va - vb);
+  });
 }
 
 /** Enchainement complet, pret pour le rendu. */
