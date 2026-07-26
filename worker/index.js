@@ -78,6 +78,73 @@ async function relayer(url, ctx, estJson = true) {
   return reponse;
 }
 
+/**
+ * Cours historiques, normalises en {devise, points:[{t, cloture}]}.
+ * Une seule forme de sortie quel que soit le fournisseur : le site n'a pas
+ * a savoir d'ou vient le prix.
+ */
+async function relayerPrix(symbole, plage, pas, env, ctx) {
+  const cle = env && env.CLE_PRIX;
+  const fournisseur = (env && env.FOURNISSEUR_PRIX) || (cle ? "twelvedata" : "yahoo");
+
+  let url, entetes = { "User-Agent": USER_AGENT };
+  if (fournisseur === "twelvedata") {
+    const taille = { "1d": 5000, "1wk": 800, "1mo": 240 }[pas] || 240;
+    const inter = { "1d": "1day", "1wk": "1week", "1mo": "1month" }[pas] || "1month";
+    url = `https://api.twelvedata.com/time_series?symbol=${symbole}&interval=${inter}`
+      + `&outputsize=${taille}&apikey=${cle}`;
+  } else {
+    url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbole}`
+      + `?range=${plage}&interval=${pas}`;
+    entetes = { "User-Agent": "Mozilla/5.0 (compatible; QS-Chart)" };
+  }
+
+  const cache = caches.default;
+  const cleCache = new Request(`https://prix.local/${fournisseur}/${symbole}/${plage}/${pas}`);
+  const enCache = await cache.match(cleCache);
+  if (enCache) {
+    const r = new Response(enCache.body, enCache);
+    for (const [k, v] of Object.entries(enTetesCors)) r.headers.set(k, v);
+    r.headers.set("X-QS-Cache", "hit");
+    return r;
+  }
+
+  const amont = await fetch(url, { headers: entetes, cf: { cacheTtl: 3600, cacheEverything: true } });
+  if (!amont.ok) return json({ erreur: `Price provider answered ${amont.status}`, fournisseur }, 502);
+  const brut = await amont.json();
+
+  let sortie;
+  if (fournisseur === "twelvedata") {
+    if (brut.status === "error") return json({ erreur: brut.message, fournisseur }, 502);
+    sortie = {
+      fournisseur, symbole, devise: brut.meta && brut.meta.currency,
+      points: (brut.values || []).map((v) => ({ t: v.datetime, cloture: Number(v.close) }))
+        .filter((p) => isFinite(p.cloture)).reverse(),
+    };
+  } else {
+    const r = brut.chart && brut.chart.result && brut.chart.result[0];
+    if (!r) return json({ erreur: "Unexpected provider payload", fournisseur }, 502);
+    const ts = r.timestamp || [];
+    const q = (r.indicators && r.indicators.quote && r.indicators.quote[0]) || {};
+    // le cours AJUSTE integre splits et dividendes : c'est celui qui se
+    // compare a un historique de resultats retraite
+    const adj = (r.indicators && r.indicators.adjclose && r.indicators.adjclose[0]
+      && r.indicators.adjclose[0].adjclose) || q.close || [];
+    sortie = {
+      fournisseur, symbole, devise: r.meta && r.meta.currency,
+      points: ts.map((t, i) => ({
+        t: new Date(t * 1000).toISOString().slice(0, 10),
+        cloture: q.close ? q.close[i] : adj[i],   // cours du jour, non retraite
+        ajuste: adj[i],                            // retraite splits + dividendes
+      })).filter((p) => p.cloture !== null && p.cloture !== undefined && isFinite(p.cloture)),
+    };
+  }
+
+  const reponse = json(sortie);
+  ctx.waitUntil(cache.put(cleCache, reponse.clone()));
+  return reponse;
+}
+
 export default {
   async fetch(requete, env, ctx) {
     if (requete.method === "OPTIONS") return new Response(null, { status: 204, headers: enTetesCors });
@@ -104,6 +171,22 @@ export default {
     if (s) {
       const cik = String(Number(s[1])).padStart(10, "0");
       return relayer(`https://data.sec.gov/submissions/CIK${cik}.json`, ctx);
+    }
+
+    // Cours de bourse. La SEC ne publie aucun prix : il faut une source
+    // exterieure. Le fournisseur est choisi par la variable d'environnement
+    // FOURNISSEUR_PRIX ; a defaut on interroge Yahoo Finance, qui ne demande
+    // pas de cle mais reste un point d'acces NON OFFICIEL (pas de garantie de
+    // service, conditions d'utilisation floues). Poser une cle Twelve Data ou
+    // Tiingo dans les variables du Worker bascule sur une source contractuelle
+    // sans rien changer au site.
+    const px = chemin.match(/^\/prix\/([A-Za-z0-9.\-]{1,12})$/);
+    if (px) {
+      const symbole = px[1].toUpperCase();
+      const params = new URL(requete.url).searchParams;
+      const plage = /^\d{1,2}y$/.test(params.get("range") || "") ? params.get("range") : "15y";
+      const pas = ["1d", "1wk", "1mo"].includes(params.get("interval")) ? params.get("interval") : "1mo";
+      return relayerPrix(symbole, plage, pas, env, ctx);
     }
 
     // Archives de depots au-dela des 1000 derniers (filings.files).

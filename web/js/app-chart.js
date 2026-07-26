@@ -15,6 +15,7 @@ import { workerUrl, definirWorkerUrl } from "./qs-settings.js";
 import { lireEtat, ecrireEtat, effacerEtat } from "./qs-etat.js";
 import { ficheKpi } from "./qs-kpi.js";
 import { decouvrir, dejaDecouvert, serieKpi } from "./qs-kpi-decouverte.js";
+import { METRIQUES_VALO, besoinDeCours, serieValo } from "./qs-prix.js";
 import {
   $, el, vider, message, statut, respirer, telechargerCanvas, copierCanvas,
 } from "./qs-ui.js";
@@ -52,6 +53,15 @@ for (const [categorie, liste] of metriquesParCategorie()) {
   const groupe = el("optgroup", { label: categorie });
   for (const m of liste.sort((a, b) => a.nom.localeCompare(b.nom, "en"))) {
     groupe.appendChild(el("option", { value: m.cle, texte: m.nom }));
+  }
+  selMetrique.appendChild(groupe);
+}
+{
+  // Les metriques de valorisation ne viennent pas des depots : elles ont
+  // besoin d'un cours, donc d'une source exterieure. Groupe a part.
+  const groupe = el("optgroup", { label: "Valuation (needs share price)" });
+  for (const [cle, d] of Object.entries(METRIQUES_VALO)) {
+    groupe.appendChild(el("option", { value: `valo:${cle}`, texte: d.nom }));
   }
   selMetrique.appendChild(groupe);
 }
@@ -245,6 +255,7 @@ function ajouterMetrique(cle) {
     return;
   }
   let d = toutesLesMetriques()[cle];
+  if (!d && cle.startsWith("valo:")) d = METRIQUES_VALO[cle.slice(5)];
   if (!d && cle.startsWith("kpi:")) {
     const { kpi } = serieKpi(cle);
     if (!kpi) return;
@@ -504,7 +515,18 @@ async function generer({ silencieux = false } = {}) {
         // il n'a qu'une seule serie, trimestrielle, et ne concerne que la
         // societe dont il provient.
         let serie;
-        if (m.cle.startsWith("kpi:")) {
+        if (m.cle.startsWith("valo:")) {
+          try {
+            const r = await serieValo(m.cle.slice(5), s.ticker, mode,
+              (b) => construireSerie(facts, b, mode, cache, rapport));
+            serie = r.serie;
+            if (r.devise) rapport.devises.add(r.devise);
+            rapport.formes.add(`price: ${r.fournisseur}`);
+          } catch (e) {
+            serie = {};
+            rapport.incoherences.push(`share price unavailable — ${e.message}`);
+          }
+        } else if (m.cle.startsWith("kpi:")) {
           if (m.cle.split(":")[1] !== s.ticker) continue;
           serie = serieKpi(m.cle).serie;
           rapport.formes.add("8-K EX-99.1");
