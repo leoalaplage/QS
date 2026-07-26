@@ -350,3 +350,46 @@ export const SUGGESTIONS = [
   "ADBE", "MCO", "ICE", "MSCI", "VEEV", "CBOE", "FICO", "CPRT", "FDS",
   "TSM", "SAP",
 ];
+
+
+// ---------------------------------------------------------------------
+// Transformations appliquees a une serie avant le trace
+// ---------------------------------------------------------------------
+export const TRANSFORMATIONS = [
+  ["aucune", "None", "Raw values"],
+  ["base100", "Rebase to 100", "First visible point = 100, to compare shapes across scales"],
+  ["yoy", "Year-on-year %", "Growth versus the same period one year earlier"],
+];
+
+/**
+ * Applique une transformation a une liste de points {x, etiquette, y}.
+ * Renvoie {points, unite} : rebaser ou passer en croissance change l'unite,
+ * et donc l'axe sur lequel la serie doit etre graduee.
+ */
+export function transformer(points, transformation, unite) {
+  if (!points.length || transformation === "aucune") return { points, unite };
+
+  if (transformation === "base100") {
+    const base = points[0].y;
+    if (!base) return { points, unite };
+    return {
+      points: points.map((p) => ({ ...p, y: (p.y / base) * 100 })),
+      unite: "indice",
+    };
+  }
+
+  if (transformation === "yoy") {
+    // « un an avant » = 4 trimestres en arriere, ou 1 an en annuel : dans les
+    // deux cas x recule de 1,0 puisque x est exprime en annees decimales.
+    const parX = new Map(points.map((p) => [Math.round(p.x * 4), p.y]));
+    const out = [];
+    for (const p of points) {
+      const avant = parX.get(Math.round((p.x - 1) * 4));
+      if (avant === undefined || !avant) continue;
+      out.push({ ...p, y: ((p.y - avant) / Math.abs(avant)) * 100 });
+    }
+    return { points: out, unite: "pct" };
+  }
+
+  return { points, unite };
+}

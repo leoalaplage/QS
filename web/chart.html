@@ -71,6 +71,24 @@
           <input type="number" id="annees" min="1" max="40" value="15">
         </div>
       </div>
+      <div class="reglages" style="margin-top:14px">
+        <div>
+          <label for="transformation">Transform</label>
+          <select id="transformation"></select>
+        </div>
+        <div>
+          <label for="etiquettes">Values on chart</label>
+          <select id="etiquettes">
+            <option value="auto">Auto (when readable)</option>
+            <option value="oui">Always show</option>
+            <option value="non">Never show</option>
+          </select>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button type="button" id="btn-reset" class="lien">Reset everything</button>
+        </div>
+      </div>
     </div>
 
     <div class="ligne-actions barre-finale">
@@ -97,6 +115,14 @@
   </section>
 
   <section id="sorties"></section>
+
+  <section id="kpi" class="carte cache">
+    <div class="entete-resultat">
+      <h2>Key figures</h2>
+      <span class="taille" id="kpi-note"></span>
+    </div>
+    <div id="kpi-corps"></div>
+  </section>
 
   <section class="carte">
     <h2>How each metric is computed</h2>

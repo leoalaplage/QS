@@ -7,6 +7,7 @@ import { analyser, CRITERES_TRI } from "./qs-engine.js";
 import { dessinerDashboard, dessinerMethodology, csvResultats } from "./qs-dashboard.js";
 import * as cfg from "./qs-config.js";
 import { ECHELLE_PNG } from "./qs-settings.js";
+import { lireEtat, ecrireEtat, sauvegardeDifferee } from "./qs-etat.js";
 import {
   $, el, vider, message, blocResultat, bouton, statut, respirer, telechargerTexte,
 } from "./qs-ui.js";
@@ -18,6 +19,38 @@ const etatSaisie = $("#etat-saisie");
 const act = statut($("#statut"), $("#statut-texte"));
 
 // ---------------------------------------------------------------------
+// Etat restaure : le tableau colle et les reglages survivent au passage
+// sur la page Chart et au rechargement.
+// ---------------------------------------------------------------------
+const CHAMPS = ["preset", "classer", "top", "min-score", "max-alertes", "cap-min",
+  "secteurs", "notes"];
+const CASES = ["valo-attractive", "sweet-spot", "sans-winsor", "methodo"];
+const PILIERS_MIN = ["min-Quality", "min-Health", "min-Growth", "min-Value"];
+
+function collecterEtat() {
+  const e = { saisie: saisie.value, champs: {}, cases: {} };
+  for (const id of [...CHAMPS, ...PILIERS_MIN]) e.champs[id] = $(`#${id}`).value;
+  for (const id of CASES) e.cases[id] = $(`#${id}`).checked;
+  return e;
+}
+
+function restaurerEtat() {
+  const e = lireEtat("tableau", null);
+  if (!e) return;
+  if (typeof e.saisie === "string") saisie.value = e.saisie;
+  for (const [id, v] of Object.entries(e.champs || {})) {
+    const el2 = $(`#${id}`);
+    if (el2 && v !== undefined) el2.value = v;
+  }
+  for (const [id, v] of Object.entries(e.cases || {})) {
+    const el2 = $(`#${id}`);
+    if (el2) el2.checked = !!v;
+  }
+}
+
+const enregistrer = sauvegardeDifferee("tableau", collecterEtat);
+
+// ---------------------------------------------------------------------
 // Chargement des donnees (fichier, glisser-deposer, exemple)
 // ---------------------------------------------------------------------
 $("#btn-fichier").addEventListener("click", () => $("#fichier").click());
@@ -27,6 +60,7 @@ $("#fichier").addEventListener("change", async (e) => {
   if (!f) return;
   saisie.value = await f.text();
   majEtat(`${f.name} loaded`);
+  enregistrer();
 });
 
 for (const evt of ["dragenter", "dragover"]) {
@@ -41,9 +75,10 @@ saisie.addEventListener("drop", async (e) => {
   if (!f) return;
   saisie.value = await f.text();
   majEtat(`${f.name} dropped`);
+  enregistrer();
 });
 
-saisie.addEventListener("input", () => majEtat());
+saisie.addEventListener("input", () => { majEtat(); enregistrer(); });
 
 function majEtat(prefixe = "") {
   const lignes = saisie.value.trim() ? saisie.value.trim().split(/\r?\n/).length : 0;
@@ -54,6 +89,7 @@ function majEtat(prefixe = "") {
 
 $("#btn-vider").addEventListener("click", () => {
   saisie.value = "";
+  enregistrer();
   vider(messages);
   vider(sorties);
   majEtat();
@@ -72,6 +108,7 @@ BKNG,Consumer Disc.,165,48.0,35.5,30.2,29.5,118,,-6.2,2.6,0.9,17.0,1.15,0.48,22.
 $("#btn-exemple").addEventListener("click", () => {
   saisie.value = EXEMPLE;
   majEtat("Example");
+  enregistrer();
 });
 
 // ---------------------------------------------------------------------
@@ -216,3 +253,14 @@ $("#btn-generer").addEventListener("click", async () => {
 saisie.addEventListener("keydown", (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key === "Enter") $("#btn-generer").click();
 });
+
+
+// ---------------------------------------------------------------------
+// Restauration au chargement + enregistrement a chaque reglage
+// ---------------------------------------------------------------------
+restaurerEtat();
+majEtat();
+for (const id of [...CHAMPS, ...PILIERS_MIN, ...CASES]) {
+  const champ = $(`#${id}`);
+  if (champ) champ.addEventListener("change", enregistrer);
+}

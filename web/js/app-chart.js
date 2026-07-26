@@ -4,6 +4,7 @@
 
 import {
   metriquesParCategorie, toutesLesMetriques, BASE, DERIVE, CATEGORIES, SUGGESTIONS,
+  TRANSFORMATIONS, transformer,
 } from "./qs-chart-metrics.js";
 import {
   chercherSocietes, chargerTickers, chargerFacts, construireSerie, modesDisponibles,
@@ -11,6 +12,8 @@ import {
 } from "./qs-chart-edgar.js";
 import { tracer, etiquetteValeur, familleUnite, COULEURS, TYPES_GRAPHE } from "./qs-chart-draw.js";
 import { workerUrl, definirWorkerUrl } from "./qs-settings.js";
+import { lireEtat, ecrireEtat, effacerEtat } from "./qs-etat.js";
+import { ficheKpi } from "./qs-kpi.js";
 import {
   $, el, vider, message, statut, respirer, telechargerCanvas, copierCanvas,
 } from "./qs-ui.js";
@@ -19,8 +22,25 @@ const messages = $("#messages");
 const sorties = $("#sorties");
 const act = statut($("#statut"), $("#statut-texte"));
 
-const societes = [];   // [{ticker, cik, nom, visible}]
-const metriques = [];  // [{cle, nom, unite, graph, visible}]
+// Etat restaure : passer de Chart a Table et revenir ne doit rien effacer.
+const DEFAUTS = {
+  societes: [], metriques: [], periode: "annuel", annees: 15,
+  transformation: "aucune", etiquettes: "auto",
+};
+const sauve = lireEtat("chart", DEFAUTS);
+
+const societes = Array.isArray(sauve.societes) ? sauve.societes : [];
+const metriques = Array.isArray(sauve.metriques) ? sauve.metriques : [];
+
+function enregistrer() {
+  ecrireEtat("chart", {
+    societes, metriques,
+    periode: $("#periode").value,
+    annees: Number($("#annees").value) || 15,
+    transformation: $("#transformation").value,
+    etiquettes: $("#etiquettes").value,
+  });
+}
 
 // ---------------------------------------------------------------------
 // Menu des metriques
@@ -39,8 +59,14 @@ selMetrique.value = "revenue";
 // ---------------------------------------------------------------------
 // Jetons : societes et metriques, masquables sans etre supprimes
 // ---------------------------------------------------------------------
-function jeton({ titre, sousTitre, entree, onBascule, onRetrait }) {
+function jeton({ titre, sousTitre, entree, onBascule, onRetrait, onCouleur }) {
   const j = el("span", { classe: `jeton${entree.visible ? "" : " masque"}` });
+  if (onCouleur) {
+    const pc = el("input", { type: "color", classe: "pastille-choix", title: `Colour for ${titre}` });
+    pc.value = entree.couleur || COULEURS[0];
+    pc.addEventListener("input", () => onCouleur(pc.value));
+    j.appendChild(pc);
+  }
   j.appendChild(el("b", { texte: titre }));
   if (sousTitre) j.appendChild(el("span", { classe: "nm", texte: sousTitre }));
 
@@ -59,12 +85,14 @@ function jeton({ titre, sousTitre, entree, onBascule, onRetrait }) {
 }
 
 function dessinerSelections() {
+  enregistrer();
   const zs = $("#selection");
   vider(zs);
   $("#selection-vide").classList.toggle("cache", societes.length > 0);
   for (const s of societes) {
     zs.appendChild(jeton({
       titre: s.ticker, sousTitre: s.nom, entree: s,
+      onCouleur: (c) => { s.couleur = c; rafraichir(); },
       onBascule: () => { s.visible = !s.visible; dessinerSelections(); rafraichir(); },
       onRetrait: () => { societes.splice(societes.indexOf(s), 1); dessinerSelections(); rafraichir(); },
     }));
@@ -117,7 +145,10 @@ function dessinerTableMetriques() {
 
     const tdNom = el("td");
     const nom = el("div", { classe: "nom" });
-    nom.appendChild(el("span", { classe: "pastille", style: `background:${couleurMetrique(i)}` }));
+    const pc = el("input", { type: "color", classe: "pastille-choix", title: `Colour for ${m.nom}` });
+    pc.value = m.couleur || COULEURS[i % COULEURS.length];
+    pc.addEventListener("input", () => { m.couleur = pc.value; rafraichir(); });
+    nom.appendChild(pc);
     nom.appendChild(el("span", { texte: m.nom }));
     tdNom.appendChild(nom);
     tr.appendChild(tdNom);
@@ -168,10 +199,31 @@ function dessinerTableMetriques() {
 }
 
 /**
- * Couleur de reference d'une metrique. Les series sont construites societe
- * par societe, donc la premiere serie de la metrique i tombe a l'index i.
+ * Couleur d'une serie (societe x metrique).
+ *
+ * La regle doit rester previsible : on colore par ce qui VARIE. Comparer
+ * deux societes sur une metrique demande une couleur par societe ; suivre
+ * plusieurs metriques d'une meme societe demande une couleur par metrique.
+ * Quand les deux varient, la metrique donne la teinte et la societe une
+ * variante plus ou moins claire.
  */
-const couleurMetrique = (i) => COULEURS[i % COULEURS.length];
+function couleurSerie(societe, metrique, nbSoc, nbMet, rangSoc) {
+  if (nbSoc > 1 && nbMet === 1) return societe.couleur || COULEURS[0];
+  if (nbMet > 1 && nbSoc === 1) return metrique.couleur || COULEURS[0];
+  if (nbSoc === 1 && nbMet === 1) return metrique.couleur || societe.couleur || COULEURS[0];
+  return eclaircir(metrique.couleur || COULEURS[0], rangSoc / Math.max(1, nbSoc - 1));
+}
+
+/** Melange une couleur hexa vers le blanc (t de 0 a 1, plafonne a 55 %). */
+function eclaircir(hex, t) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const k = Math.min(0.55, t * 0.55);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+    .map((v) => Math.round(v + (255 - v) * k));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
 
 function ajouterSociete(s) {
   if (societes.some((x) => x.ticker === s.ticker)) return;
@@ -179,7 +231,7 @@ function ajouterSociete(s) {
     message(messages, "info", "Six companies maximum on a single chart.");
     return;
   }
-  societes.push({ ...s, visible: true });
+  societes.push({ ...s, visible: true, couleur: COULEURS[societes.length % COULEURS.length] });
   dessinerSelections();
 }
 
@@ -194,6 +246,7 @@ function ajouterMetrique(cle) {
     cle, nom: d.nom, unite: d.unite, visible: true,
     // barres pour les montants, courbe pour les ratios : le defaut de qs_chart.py
     type: d.graph === "bar" ? "bar" : "line",
+    couleur: COULEURS[metriques.length % COULEURS.length],
     overlays: { moyenne: false, mediane: false, extremes: false, tendance: false },
   });
   dessinerSelections();
@@ -252,6 +305,19 @@ document.addEventListener("click", (e) => { if (!e.target.closest(".champ-recher
 // ---------------------------------------------------------------------
 // Presets de duree
 // ---------------------------------------------------------------------
+{
+  const sel = $("#transformation");
+  for (const [v, libelle, titre] of TRANSFORMATIONS) {
+    sel.appendChild(el("option", { value: v, texte: libelle, title: titre }));
+  }
+}
+
+// reglages restaures
+$("#periode").value = sauve.periode || "annuel";
+$("#annees").value = sauve.annees || 15;
+$("#transformation").value = sauve.transformation || "aucune";
+$("#etiquettes").value = sauve.etiquettes || "auto";
+
 const DUREES = [["1Y", 1], ["3Y", 3], ["5Y", 5], ["10Y", 10], ["15Y", 15], ["Max", 40]];
 const zonePresets = $("#presets-duree");
 const champAnnees = $("#annees");
@@ -381,6 +447,7 @@ function brancherSurvol(zone, canvas, geo) {
 let dejaGenere = false;
 
 async function rafraichir() {
+  enregistrer();
   if (dejaGenere) await generer({ silencieux: true });
 }
 
@@ -399,6 +466,7 @@ async function generer({ silencieux = false } = {}) {
     return;
   }
 
+  enregistrer();
   const mode = $("#periode").value;
   const annees = Math.max(1, Number(champAnnees.value) || 15);
 
@@ -438,20 +506,22 @@ async function generer({ silencieux = false } = {}) {
   // -- series tracees ---------------------------------------------------
   const series = [];
   const vides = [];
+  const transformation = $("#transformation").value;
   brut.forEach((b, i) => {
-    const points = Object.keys(b.serie)
+    const bruts = Object.keys(b.serie)
       .map((k) => ({ ...decoderCle(k), y: b.serie[k] }))
       .filter((p) => p.x >= xMinFenetre - 1e-9 && p.y != null && isFinite(p.y))
       .sort((a, c) => a.x - c.x);
+    const { points, unite } = transformer(bruts, transformation, b.metrique.unite);
     if (!points.length) { vides.push(`${b.societe.ticker} — ${b.metrique.nom}`); return; }
     series.push({
       id: `${b.societe.ticker}|${b.metrique.cle}`,
       libelle: (soc.length > 1 && met.length > 1) ? `${b.societe.ticker} · ${b.metrique.nom}`
         : met.length > 1 ? b.metrique.nom : b.societe.ticker,
       points,
-      unite: b.metrique.unite,
+      unite,
       devise: [...b.rapport.devises][0] || "USD",
-      couleur: COULEURS[i % COULEURS.length],
+      couleur: couleurSerie(b.societe, b.metrique, soc.length, met.length, soc.indexOf(b.societe)),
       type: b.metrique.type,
       // les superpositions ne s'appliquent qu'a la metrique qui les demande
       overlays: b.metrique.overlays,
@@ -491,6 +561,7 @@ async function generer({ silencieux = false } = {}) {
   try {
     rendu = tracer({
       series, titre,
+      etiquettes: { auto: "auto", oui: true, non: false }[$("#etiquettes").value] ?? "auto",
       sousAxeX: trimestriel ? "Period (calendar quarter of period end)" : "Fiscal year",
     });
   } catch (e) {
@@ -522,12 +593,20 @@ async function generer({ silencieux = false } = {}) {
   if (reserves.length) message(messages, "info", "Chart generated, with caveats:", reserves);
 
   sorties.appendChild(blocGraphe(rendu, series, rapports, mode));
+  await dessinerKpi(soc);
   if (!silencieux) sorties.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 $("#btn-generer").addEventListener("click", () => generer());
-$("#periode").addEventListener("change", rafraichir);
+for (const id of ["#periode", "#transformation", "#etiquettes"]) {
+  $(id).addEventListener("change", rafraichir);
+}
 champAnnees.addEventListener("change", rafraichir);
+
+$("#btn-reset").addEventListener("click", () => {
+  effacerEtat("chart");
+  location.reload();
+});
 
 // ---------------------------------------------------------------------
 // Bloc de resultat
@@ -663,3 +742,94 @@ function panneauAudit(rapports, mode) {
 })();
 
 dessinerSelections();
+
+
+// ---------------------------------------------------------------------
+// Fiche KPI : une colonne par societe, une ligne par indicateur
+// ---------------------------------------------------------------------
+async function dessinerKpi(soc) {
+  const section = $("#kpi");
+  const corps = $("#kpi-corps");
+  vider(corps);
+  if (!soc.length) { section.classList.add("cache"); return; }
+
+  const fiches = [];
+  for (const s of soc) {
+    try {
+      fiches.push({ societe: s, fiche: ficheKpi(await factsDe(s)) });
+    } catch { /* une societe illisible ne doit pas vider le tableau */ }
+  }
+  if (!fiches.length) { section.classList.add("cache"); return; }
+
+  const table = el("table", { classe: "kpi-table" });
+  const entete = el("tr");
+  entete.appendChild(el("th", { texte: "" }));
+  for (const f of fiches) {
+    const th = el("th");
+    th.appendChild(el("div", { classe: "tk", texte: f.societe.ticker }));
+    th.appendChild(el("div", { classe: "nm", texte: f.fiche.devise || "" }));
+    entete.appendChild(th);
+  }
+  table.appendChild(entete);
+
+  const modele = fiches[0].fiche.lignes;
+  modele.forEach((ligneModele, idx) => {
+    if (ligneModele.groupe) {
+      const tr = el("tr", { classe: "groupe" });
+      const td = el("td", { texte: ligneModele.groupe, colspan: String(fiches.length + 1) });
+      tr.appendChild(td);
+      table.appendChild(tr);
+      return;
+    }
+    const tr = el("tr");
+    const tdNom = el("td", { classe: "kpi-nom" });
+    tdNom.appendChild(el("span", { texte: ligneModele.nom }));
+    tr.appendChild(tdNom);
+
+    for (const f of fiches) {
+      const l = f.fiche.lignes[idx];
+      const td = el("td", { classe: "kpi-val" });
+      if (!l || l.valeur === null || l.valeur === undefined) {
+        td.appendChild(el("span", { classe: "vide", texte: "—" }));
+      } else {
+        td.appendChild(el("div", {
+          classe: "v", texte: etiquetteValeur(l.valeur, l.unite, f.fiche.devise || "USD"),
+        }));
+        const bas = [];
+        if (l.base === "FY") bas.push("FY only");
+        if (l.cagr) {
+          for (const n of [3, 5, 10]) {
+            if (l.cagr[n] !== null && l.cagr[n] !== undefined) {
+              bas.push(`${n}y ${l.cagr[n] >= 0 ? "+" : ""}${l.cagr[n].toFixed(1)}%`);
+            }
+          }
+        }
+        if (l.variation) {
+          for (const n of [3, 5]) {
+            if (l.variation[n] !== null && l.variation[n] !== undefined) {
+              bas.push(`${n}y ${l.variation[n] >= 0 ? "+" : ""}${l.variation[n].toFixed(1)}%`);
+            }
+          }
+        }
+        if (bas.length) td.appendChild(el("div", { classe: "sous", texte: bas.join("  ·  ") }));
+      }
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  });
+
+  corps.appendChild(table);
+  corps.appendChild(el("p", {
+    classe: "aide", style: "margin-top:12px",
+    texte: "Flows are TTM (four consecutive quarters); balance-sheet items are taken at the latest "
+      + "period end. \"FY only\" marks a company that files no quarterly report, so its figure is the "
+      + "last full fiscal year. The small line under a value shows the 3, 5 and 10-year CAGR computed "
+      + "on annual data — for the share count it is the total change, which is what dilution means. "
+      + "Anything that depends on the share price (market cap, EV/EBIT, P/FCF, FCF yield) is absent: "
+      + "SEC filings do not carry it.",
+  }));
+
+  const periodes = [...new Set(fiches.map((f) => f.fiche.periode).filter(Boolean))];
+  $("#kpi-note").textContent = periodes.length ? `latest TTM period: ${periodes.join(", ")}` : "";
+  section.classList.remove("cache");
+}

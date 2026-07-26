@@ -29,7 +29,8 @@ export const TYPES_GRAPHE = [
 
 // Familles d'unites : deux metriques de la meme famille partagent un axe.
 export const familleUnite = (u) => (u === "money" || u === "per_share" ? "money"
-  : u === "pct" ? "pct" : u === "shares" ? "shares" : "ratio");
+  : u === "pct" ? "pct" : u === "shares" ? "shares"
+    : u === "indice" ? "indice" : "ratio");
 
 // ---------------------------------------------------------------------
 // Formatage des valeurs
@@ -69,6 +70,7 @@ export function etiquetteValeur(v, unite, devise) {
     case "per_share": return `${symbole(devise)}${v.toFixed(2)}`;
     case "shares": return fmtShares(v);
     case "ratio": return v.toFixed(2);
+    case "indice": return v.toFixed(1);
     default: return fmtG(v);
   }
 }
@@ -84,6 +86,7 @@ function etiquetteAxe(v, unite, pas, devise) {
     case "per_share": return `${symbole(devise)}${v.toFixed(2)}`;
     case "shares": return fmtShares(v);
     case "ratio": return v.toFixed(1);
+    case "indice": return v.toFixed(0);
     default: return fmtG(v);
   }
 }
@@ -184,7 +187,8 @@ export function tendance(points) {
  *          conversion valeur <-> pixel et les points effectivement traces.
  */
 export function tracer({
-  series, titre = "", sousAxeX = "Fiscal year", overlays = {}, dpi = 200,
+  series, titre = "", sousAxeX = "Fiscal year", dpi = 200,
+  etiquettes: montreEtiquettesDemande = "auto", logY = false,
 } = {}) {
   const visibles = series.filter((s) => s.points && s.points.length);
   if (!visibles.length) throw new Error("No data to plot.");
@@ -256,8 +260,10 @@ export function tracer({
   const etX = (xMaxD - xMinD) || 1;
   const xMin = xMinD - 0.03 * etX, xMax = xMaxD + 0.03 * etX;
 
+  // Etiquettes de valeur : "auto" ne les montre que si elles restent lisibles.
   const nbPoints = visibles.reduce((a, s) => a + s.points.length, 0);
-  const montreEtiquettes = visibles.length === 1 && nbPoints <= 22;
+  const montreEtiquettes = montreEtiquettesDemande === true
+    || (montreEtiquettesDemande === "auto" && visibles.length === 1 && nbPoints <= 22);
 
   const echelles = bornesY.map((b, i) => {
     const etY = (b.max - b.min) || Math.abs(b.max) || 1;
@@ -516,7 +522,15 @@ export function tracer({
   // -- legende ---------------------------------------------------------
   police(9);
   const hLigne = 13 * U;
-  const largeurLeg = Math.max(...visibles.map((s) => c.measureText(s.libelle).width));
+  // Le CAGR n'a de sens que sur une grandeur qui croit : un ratio ou une
+  // marge n'en recoit pas, un montant negatif non plus.
+  for (const s of visibles) {
+    // un indice rebase porte la meme croissance que la serie d'origine
+    const g = ["money", "per_share", "shares", "indice"].includes(s.unite) ? cagr(s.points) : null;
+    s.libelleLegende = s.libelle
+      + (g !== null ? `  (CAGR ${g >= 0 ? "+" : ""}${(g * 100).toFixed(1)}%)` : "");
+  }
+  const largeurLeg = Math.max(...visibles.map((s) => c.measureText(s.libelleLegende).width));
   let sommeG = 0, nG = 0, sommeD = 0, nD = 0;
   const milieu = (xMin + xMax) / 2;
   for (const s of visibles) {
@@ -534,7 +548,7 @@ export function tracer({
     c.lineWidth = 2.2 * U;
     c.beginPath(); c.moveTo(xLeg, yLeg); c.lineTo(xLeg + 16 * U, yLeg); c.stroke();
     c.fillStyle = "#333333";
-    c.fillText(s.libelle, xLeg + 21 * U, yLeg);
+    c.fillText(s.libelleLegende, xLeg + 21 * U, yLeg);
     yLeg += hLigne;
   }
 

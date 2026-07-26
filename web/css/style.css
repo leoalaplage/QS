@@ -290,6 +290,36 @@ details.options > div { padding-top: 16px; }
 }
 .sup input { width: auto; margin: 0; }
 
+/* -- selecteur de couleur ----------------------------------------------- */
+.pastille-choix {
+  width: 16px; height: 16px; padding: 0; border: 1px solid var(--bord);
+  border-radius: 50%; background: none; cursor: pointer; flex: none;
+  -webkit-appearance: none; appearance: none; overflow: hidden;
+}
+.pastille-choix::-webkit-color-swatch-wrapper { padding: 0; }
+.pastille-choix::-webkit-color-swatch { border: none; border-radius: 50%; }
+.pastille-choix::-moz-color-swatch { border: none; border-radius: 50%; }
+
+/* -- fiche KPI ----------------------------------------------------------- */
+.kpi-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.kpi-table th {
+  text-align: right; padding: 0 12px 10px; vertical-align: bottom;
+  border-bottom: 2px solid var(--bord);
+}
+.kpi-table th:first-child { text-align: left; }
+.kpi-table th .tk { font-weight: 700; font-size: 15px; color: var(--texte); }
+.kpi-table th .nm { font-size: 11px; color: var(--texte-faible); font-weight: 400; }
+.kpi-table td { padding: 8px 12px; border-bottom: 1px solid #eef1f5; }
+.kpi-table tr.groupe td {
+  background: #eef2f7; font-weight: 700; font-size: 11px; letter-spacing: .6px;
+  text-transform: uppercase; color: var(--bleu); padding: 6px 12px;
+}
+.kpi-nom { color: var(--texte-doux); }
+.kpi-val { text-align: right; }
+.kpi-val .v { font-weight: 600; font-variant-numeric: tabular-nums; }
+.kpi-val .sous { font-size: 11px; color: var(--texte-faible); font-variant-numeric: tabular-nums; }
+.kpi-val .vide { color: var(--texte-faible); }
+
 /* -- presets de duree --------------------------------------------------- */
 .presets { display: flex; gap: 4px; flex-wrap: wrap; }
 .presets button {
