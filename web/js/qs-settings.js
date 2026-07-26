@@ -14,7 +14,7 @@
 //  (elle est alors memorisee dans le navigateur).
 // =====================================================================
 
-export const WORKER_URL_DEFAUT = "";
+export const WORKER_URL_DEFAUT = "https://qs-edgar.leoalaplage.workers.dev";
 
 const CLE_STOCKAGE = "qs.worker.url";
 
