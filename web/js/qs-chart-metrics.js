@@ -76,9 +76,16 @@ export const BASE = {
     tags: [[G, "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest"],
            [G, "IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments"],
            [I, "ProfitLossBeforeTax"]] },
-  eps_diluted: {
-    nom: "Diluted EPS", cat: "Income statement",
-    unite: "per_share", graph: "line",
+  eps_publie: {
+    nom: "Diluted EPS (as reported)", cat: "Income statement",
+    unite: "per_share", graph: "line", menu: false,
+    // Un montant PAR ACTION ne se reconstitue pas par difference de cumuls :
+    // le nombre d'actions bouge d'un trimestre a l'autre, et surtout les
+    // splits font que les vieux depots publient l'EPS pre-split quand les
+    // recents le retraitent. Chez Apple, differencer donnait -2,92 pour un
+    // trimestre publie a 8,67. On ne garde donc que les trimestres publies
+    // tels quels, quitte a en avoir moins.
+    nonAdditif: true,
     tags: [[G, "EarningsPerShareDiluted"], [G, "EarningsPerShareBasic"],
            [I, "DilutedEarningsLossPerShare"], [I, "BasicEarningsLossPerShare"]] },
 
@@ -181,6 +188,13 @@ export const BASE = {
   shares_diluted: {
     nom: "Diluted share count", cat: "Shares",
     unite: "shares", graph: "line",
+    // Une moyenne ponderee d'actions ne s'additionne pas : soustraire le
+    // cumul 9 mois du cumul annuel laisse un residu minuscule, et l'EPS
+    // calcule dessus explosait a -584. On ne garde que les trimestres publies.
+    nonAdditif: true,
+    // En TTM on ne SOMME pas un nombre d'actions : on prend la derniere
+    // valeur connue, comme pour un poste de bilan.
+    ttmPonctuel: true,
     tags: [[G, "WeightedAverageNumberOfDilutedSharesOutstanding"],
            [G, "WeightedAverageNumberOfSharesOutstandingBasic"],
            [I, "AdjustedWeightedAverageNumberOfOrdinarySharesOutstandingDiluted"],
@@ -223,6 +237,55 @@ function roic(s) {
 }
 
 export const DERIVE = {
+  /**
+   * EPS dilue. On privilegie toujours le chiffre PUBLIE ; on ne calcule que
+   * les trimestres absents.
+   *
+   * Pourquoi ne pas reconstituer par difference de cumuls, comme pour les
+   * autres flux : un montant par action n'est pas additif et surtout les
+   * splits retraitent l'historique. Chez Apple, la difference donnait -2,92
+   * pour un trimestre publie a 8,67. Le resultat net et le nombre d'actions,
+   * eux, ne sont pas affectes par ce probleme : leur rapport redonne l'EPS
+   * du trimestre manquant -- typiquement le 4e trimestre fiscal, que les
+   * societes ne publient jamais isolement.
+   */
+  eps_diluted: {
+    nom: "Diluted EPS", cat: "Income statement",
+    unite: "per_share", graph: "line",
+    formule: "Reported diluted EPS; missing quarters = net income / diluted share count",
+    note: "The reported figure always wins. A computed quarter is only used where the company "
+      + "publishes none — in practice the fourth fiscal quarter.",
+    // Le TTM se calcule sur la serie TRIMESTRIELLE finale (somme glissante
+    // de 4 trimestres d'EPS), et non a partir de composants deja en TTM :
+    // sinon le denominateur serait un nombre d'actions quadruple.
+    ttmDepuisTrimestres: true,
+    besoins: ["eps_publie", "net_income", "shares_diluted"],
+    calc: (s) => {
+      const out = { ...s.eps_publie };
+      const clesActions = Object.keys(s.shares_diluted).sort();
+      if (!clesActions.length) return out;
+      // Le nombre d'actions du trimestre manquant n'est pas toujours publie
+      // non plus : on prend celui de la periode la plus proche. Un compte
+      // d'actions bouge de quelques pourcents par an, l'approximation est
+      // sans commune mesure avec l'erreur qu'elle evite.
+      const rang = (k) => {
+        const m = String(k).match(/^(\d{4})Q([1-4])$/);
+        return m ? Number(m[1]) * 4 + Number(m[2]) : Number(k) * 4;
+      };
+      for (const k of Object.keys(s.net_income)) {
+        if (k in out) continue;
+        let proche = null, ecart = Infinity;
+        for (const c of clesActions) {
+          const d = Math.abs(rang(c) - rang(k));
+          if (d < ecart) { ecart = d; proche = c; }
+        }
+        // au-dela d'un an d'ecart, l'approximation ne vaut plus rien
+        if (proche && ecart <= 4 && s.shares_diluted[proche]) {
+          out[k] = s.net_income[k] / s.shares_diluted[proche];
+        }
+      }
+      return out;
+    } },
   fcf: {
     nom: "Free cash flow (FCF)", cat: "Cash flow",
     formule: "Operating cash flow − capital expenditure",

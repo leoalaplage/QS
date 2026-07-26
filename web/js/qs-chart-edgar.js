@@ -271,7 +271,7 @@ function trierPoints(lignes) {
  *
  * @returns {Map<string, {val:number, derive:boolean, fin:Date, forme:string}>}
  */
-function trimestresDiscrets(durees, rapport) {
+function trimestresDiscrets(durees, rapport, nonAdditif = false) {
   const parDebut = new Map();
   for (const p of durees) {
     const cle = p.debut.getTime();
@@ -306,7 +306,7 @@ function trimestresDiscrets(durees, rapport) {
       if (!precedent) {
         const d = jours(p.debut, p.fin);
         if (d >= DUREE_TRIMESTRE[0] && d <= DUREE_TRIMESTRE[1]) poser(p.debut, p.fin, p.val, false, p.forme);
-      } else {
+      } else if (!nonAdditif) {
         // ecart entre deux cumuls consecutifs = le trimestre qui les separe
         const delta = jours(precedent.fin, p.fin);
         if (delta >= DUREE_TRIMESTRE[0] && delta <= DUREE_TRIMESTRE[1]) {
@@ -386,7 +386,7 @@ function serieAnnuelle(tri, rapport) {
  * Les flux manquants de 4e trimestre sont derives : Q4 = exercice - (Q1+Q2+Q3),
  * uniquement quand les 3 trimestres tombent exactement dans l'exercice.
  */
-function serieTrimestrielle(tri, rapport) {
+function serieTrimestrielle(tri, rapport, nonAdditif = false) {
   const serie = {};
 
   if (tri.instant) {
@@ -397,7 +397,7 @@ function serieTrimestrielle(tri, rapport) {
     return serie;
   }
 
-  const quarts = trimestresDiscrets(tri.durees, rapport);
+  const quarts = trimestresDiscrets(tri.durees, rapport, nonAdditif);
   for (const [cle, q] of quarts) {
     serie[cle] = q.val;
     rapport.formes.add(q.forme);
@@ -421,13 +421,27 @@ function serieTrimestrielle(tri, rapport) {
   return serie;
 }
 
+/** Somme glissante de 4 trimestres consecutifs sur une serie deja trimestrielle. */
+function cumulGlissant(trim) {
+  const idx = (c) => { const { annee, trimestre } = decoderCle(c); return annee * 4 + (trimestre - 1); };
+  const parIdx = new Map(Object.keys(trim).map((c) => [idx(c), trim[c]]));
+  const out = {};
+  for (const c of Object.keys(trim)) {
+    const i = idx(c);
+    const bouts = [parIdx.get(i), parIdx.get(i - 1), parIdx.get(i - 2), parIdx.get(i - 3)];
+    if (bouts.some((v) => v === undefined)) continue;
+    out[c] = bouts.reduce((a, b) => a + b, 0);
+  }
+  return out;
+}
+
 /**
  * Serie TTM {2025Q3: valeur}.
  *   flux   : somme des 4 trimestres consecutifs se terminant a cette periode ;
  *   bilan  : la valeur ponctuelle du trimestre (un stock ne se cumule pas).
  */
-function serieTTM(tri, rapport) {
-  const trim = serieTrimestrielle(tri, rapport);
+function serieTTM(tri, rapport, nonAdditif = false) {
+  const trim = serieTrimestrielle(tri, rapport, nonAdditif);
   if (tri.instant) return trim;   // poste de bilan : TTM = photo la plus recente
 
   const cles = Object.keys(trim).sort();
@@ -468,8 +482,10 @@ function serieBase(facts, cle, mode, rapport) {
     const tri = trierPoints(noeud.units[choix.unite]);
     const sousRapport = nouveauRapport();
     const serie = mode === MODES.ANNUEL ? serieAnnuelle(tri, sousRapport)
-      : mode === MODES.TRIMESTRE ? serieTrimestrielle(tri, sousRapport)
-        : serieTTM(tri, sousRapport);
+      : mode === MODES.TRIMESTRE ? serieTrimestrielle(tri, sousRapport, !!d.nonAdditif)
+        : d.ttmPonctuel
+          ? serieTrimestrielle(tri, sousRapport, !!d.nonAdditif)   // valeur ponctuelle
+          : serieTTM(tri, sousRapport, !!d.nonAdditif);
 
     let ajoutes = 0;
     for (const [k, v] of Object.entries(serie)) {
@@ -498,9 +514,16 @@ export function construireSerie(facts, cle, mode, cache = {}, rapport = null) {
     serie = serieBase(facts, cle, mode, rap);
   } else {
     const d = DERIVE[cle];
+    // Certaines derivees doivent etre calculees TRIMESTRE par TRIMESTRE puis
+    // cumulees : un rapport dont le denominateur n'est pas additif (l'EPS et
+    // son nombre d'actions) serait faux si on le calculait sur des composants
+    // deja cumules.
+    const modeComposants = (mode === MODES.TTM && d.ttmDepuisTrimestres)
+      ? MODES.TRIMESTRE : mode;
     const sous = {};
-    for (const b of d.besoins) sous[b] = construireSerie(facts, b, mode, cache, rap);
+    for (const b of d.besoins) sous[b] = construireSerie(facts, b, modeComposants, cache, rap);
     serie = d.calc(sous);
+    if (mode === MODES.TTM && d.ttmDepuisTrimestres) serie = cumulGlissant(serie);
     // Un ratio qui melangerait deux devises serait faux : on refuse plutot
     // que d'afficher un chiffre qui n'a aucun sens.
     if (rap.devises.size > 1) {
