@@ -233,6 +233,7 @@ function ajouterSociete(s) {
   }
   societes.push({ ...s, visible: true, couleur: COULEURS[societes.length % COULEURS.length] });
   dessinerSelections();
+  rafraichir();
 }
 
 function ajouterMetrique(cle) {
@@ -250,10 +251,13 @@ function ajouterMetrique(cle) {
     overlays: { moyenne: false, mediane: false, extremes: false, tendance: false },
   });
   dessinerSelections();
+  rafraichir();
 }
 
+// Choisir une metrique dans le menu l'ajoute directement ; le bouton reste
+// pour la remettre apres l'avoir retiree sans changer de selection.
+selMetrique.addEventListener("change", () => ajouterMetrique(selMetrique.value));
 $("#btn-ajout-metrique").addEventListener("click", () => ajouterMetrique(selMetrique.value));
-ajouterMetrique("revenue");
 
 // ---------------------------------------------------------------------
 // Suggestions et recherche
@@ -444,11 +448,14 @@ function brancherSurvol(zone, canvas, geo) {
 // ---------------------------------------------------------------------
 // Generation
 // ---------------------------------------------------------------------
-let dejaGenere = false;
-
-async function rafraichir() {
+// Tout reglage redessine immediatement. On regroupe les changements
+// rapproches (glisser un selecteur de couleur en emet des dizaines) pour
+// ne pas relancer un rendu a chaque evenement.
+let minuteurRendu = null;
+function rafraichir() {
   enregistrer();
-  if (dejaGenere) await generer({ silencieux: true });
+  clearTimeout(minuteurRendu);
+  minuteurRendu = setTimeout(() => { generer({ silencieux: true }); }, 120);
 }
 
 async function generer({ silencieux = false } = {}) {
@@ -458,6 +465,7 @@ async function generer({ silencieux = false } = {}) {
   const soc = societes.filter((s) => s.visible);
   const met = metriques.filter((m) => m.visible);
   if (!soc.length || !met.length) {
+    $("#kpi").classList.add("cache");
     if (!silencieux) {
       message(messages, "erreur", !soc.length
         ? "Pick at least one company (search by name or ticker)."
@@ -570,7 +578,6 @@ async function generer({ silencieux = false } = {}) {
     return;
   }
   act.cacher();
-  dejaGenere = true;
 
   // -- messages ----------------------------------------------------------
   if (silencieux) vider(messages);
@@ -768,6 +775,16 @@ async function dessinerKpi(soc) {
     const th = el("th");
     th.appendChild(el("div", { classe: "tk", texte: f.societe.ticker }));
     th.appendChild(el("div", { classe: "nm", texte: f.fiche.devise || "" }));
+    // Les indicateurs operationnels du MD&A ne sont pas balises en XBRL :
+    // on ne peut pas les calculer, on renvoie donc au document source.
+    th.appendChild(el("a", {
+      classe: "lien-mda",
+      href: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${f.societe.cik}`
+        + "&type=10-K&dateb=&owner=include&count=10",
+      target: "_blank", rel: "noopener",
+      texte: "MD&A ↗",
+      title: `Open ${f.societe.ticker} 10-K filings on EDGAR — operating KPIs live in the MD&A section`,
+    }));
     entete.appendChild(th);
   }
   table.appendChild(entete);
