@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QS Chart - EDGAR charts as PNG</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <div class="marque">QS <span>Chart</span></div>
+  <nav>
+    <a href="index.html">Table</a>
+    <a href="chart.html" class="actif">Chart</a>
+  </nav>
+</header>
+
+<main>
+  <h1>Historical chart as a PNG</h1>
+  <p class="intro">
+    Search a company by name or ticker, pick a metric and a period: the chart is
+    drawn from the XBRL data filed with the SEC and shows up right here. Several
+    companies can be overlaid on the same chart.
+  </p>
+
+  <section class="carte">
+    <div class="grille">
+      <div class="champ-recherche">
+        <label for="recherche">Company (name or ticker)</label>
+        <input type="text" id="recherche" placeholder="Novo Nordisk, ASML, AAPL&hellip;" autocomplete="off">
+        <div id="resultats-recherche" class="suggestions cache"></div>
+      </div>
+      <div>
+        <label for="metrique">Metric</label>
+        <select id="metrique"></select>
+      </div>
+      <div>
+        <label for="periode">Period</label>
+        <select id="periode">
+          <option value="annuel">Annual</option>
+          <option value="trimestre">Quarterly</option>
+          <option value="ttm">TTM (trailing twelve months)</option>
+        </select>
+      </div>
+      <div>
+        <label for="annees">History depth (years)</label>
+        <input type="number" id="annees" min="2" max="40" value="15">
+      </div>
+    </div>
+
+    <div id="selection-vide" class="aide" style="margin-top:14px">
+      No company selected. Search above, or click a suggestion:
+      <span id="suggestions-rapides"></span>
+    </div>
+    <div id="selection" class="jetons"></div>
+
+    <div class="ligne-actions" style="margin-top:18px">
+      <button type="button" class="primaire" id="btn-generer">Generate the chart</button>
+      <button type="button" class="lien" id="btn-relais">EDGAR relay&hellip;</button>
+      <span id="statut" class="chargement cache"><span class="rondelle"></span><span id="statut-texte"></span></span>
+    </div>
+
+    <div id="config-relais" class="cache" style="margin-top:16px">
+      <label for="url-relais">URL of the Cloudflare Worker relaying EDGAR</label>
+      <div class="ligne-actions" style="margin-top:0">
+        <input type="text" id="url-relais" placeholder="https://qs-edgar.your-account.workers.dev"
+               style="flex:1;min-width:280px">
+        <button type="button" id="btn-enregistrer-relais">Save</button>
+      </div>
+      <p class="aide">
+        The SEC sends no CORS headers, so a static site cannot call it directly.
+        The <code>worker/</code> folder in the repository holds the relay to deploy
+        (free, ~50 lines). The URL is stored in this browser only.
+      </p>
+    </div>
+
+    <div id="messages"></div>
+  </section>
+
+  <section id="sorties"></section>
+
+  <section class="carte">
+    <h2>What the data covers</h2>
+    <p class="aide">
+      Single source: XBRL filings with the SEC. That covers the ~10,400 companies
+      listed in the United States, in both the <code>us-gaap</code> and
+      <code>ifrs-full</code> taxonomies — so foreign companies listed there are
+      included (ASML in EUR, Novo Nordisk in DKK, TSMC in TWD, SAP in EUR).
+      Figures are shown in the currency they were reported in.
+    </p>
+    <p class="aide">
+      <strong>Out of reach:</strong> a company that is not listed in the United
+      States has no SEC filings at all — Constellation Software (Toronto) or
+      Herm&egrave;s (Paris) cannot be found here, whatever you search for.
+    </p>
+    <p class="aide">
+      <strong>Quarterly and TTM:</strong> both need detailed quarterly reports
+      (10-Q). Foreign filers often publish an annual report only (20-F), in which
+      case annual is the only period available — and the site says so instead of
+      drawing an empty chart. Since Q4 is never filed in a 10-Q, it is
+      reconstructed by difference with the fiscal year, and that calculation is
+      checked against the years where all four quarters already exist.
+    </p>
+  </section>
+</main>
+
+<footer>
+  Data source: SEC EDGAR (XBRL) &mdash; extraction derived from <code>qs_chart.py</code>.
+</footer>
+
+<script type="module" src="js/app-chart.js"></script>
+</body>
+</html>

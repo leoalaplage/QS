@@ -1,0 +1,12 @@
+name = "qs-edgar"
+main = "index.js"
+compatibility_date = "2025-01-01"
+
+# Deploiement :
+#   npm install -g wrangler
+#   cd worker
+#   wrangler login
+#   wrangler deploy
+#
+# L'URL affichee a la fin (https://qs-edgar.<ton-compte>.workers.dev) est celle
+# a coller dans web/js/qs-settings.js (WORKER_URL_DEFAUT).

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QS Screener - table as PNG</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <div class="marque">QS <span>Screener</span></div>
+  <nav>
+    <a href="index.html" class="actif">Table</a>
+    <a href="chart.html">Chart</a>
+  </nav>
+</header>
+
+<main>
+  <h1>Quality scoring table as a PNG</h1>
+  <p class="intro">
+    Paste your export (fiscal.ai, Excel, Google Sheets&hellip;) or drop a CSV file:
+    the colour-coded ranking is computed in your browser and rendered as an image,
+    ready to copy and paste. No data ever leaves your machine.
+  </p>
+
+  <section class="carte">
+    <h2><span class="etape">1</span>Your data</h2>
+    <textarea id="saisie" spellcheck="false"
+      placeholder="Paste your table here, keeping the first row of column titles.&#10;&#10;Ticker,Market Cap,Return on Invested Capital,ROIC 5Yr Avg,Operating Margin,...&#10;AAPL,3521.5,57.2,52.4,31.8,...&#10;MSFT,3180.2,29.1,28.0,44.6,...&#10;&#10;Comma, semicolon or tab all work — a copy-paste straight out of Excel is already tab-separated."></textarea>
+
+    <div class="ligne-actions">
+      <input type="file" id="fichier" accept=".csv,.tsv,.txt" hidden>
+      <button type="button" id="btn-fichier">Choose a CSV file&hellip;</button>
+      <button type="button" class="lien" id="btn-exemple">Load an example</button>
+      <button type="button" class="lien" id="btn-vider">Clear</button>
+      <span class="aide" id="etat-saisie"></span>
+    </div>
+    <p class="aide">
+      Columns are matched automatically (case, accents and spaces ignored):
+      <code>Ticker</code> is the only required one. A missing column is simply
+      dropped from the calculation and the remaining weights are renormalized.
+    </p>
+  </section>
+
+  <section class="carte">
+    <h2><span class="etape">2</span>Settings</h2>
+    <div class="grille">
+      <div>
+        <label for="preset">Pillar weights</label>
+        <select id="preset">
+          <option value="">Default (45 / 20 / 15 / 20)</option>
+          <option value="quality-purist">Quality purist (55 / 20 / 10 / 15)</option>
+          <option value="value-aware">Value aware (35 / 20 / 15 / 30)</option>
+        </select>
+      </div>
+      <div>
+        <label for="classer">Rank by</label>
+        <select id="classer">
+          <option value="total">TOTAL</option>
+          <option value="conviction">Risk-adjusted score</option>
+        </select>
+      </div>
+      <div>
+        <label for="top">Keep the top N</label>
+        <input type="number" id="top" min="1" placeholder="all">
+      </div>
+    </div>
+
+    <details class="options">
+      <summary>Advanced filters</summary>
+      <div>
+        <div class="grille">
+          <div>
+            <label for="min-score">Minimum TOTAL</label>
+            <input type="number" id="min-score" step="1" placeholder="none">
+          </div>
+          <div>
+            <label for="max-alertes">Maximum alerts</label>
+            <input type="number" id="max-alertes" min="0" step="1" placeholder="no limit">
+          </div>
+          <div>
+            <label for="cap-min">Minimum market cap ($bn)</label>
+            <input type="number" id="cap-min" step="1" placeholder="none">
+          </div>
+          <div>
+            <label for="secteurs">Sectors (comma-separated)</label>
+            <input type="text" id="secteurs" placeholder="Software, Financials">
+          </div>
+          <div>
+            <label for="notes">Letter grades</label>
+            <input type="text" id="notes" placeholder="A+, A">
+          </div>
+        </div>
+        <h3>Minimum score per pillar</h3>
+        <div class="grille">
+          <div><label for="min-Quality">Quality</label><input type="number" id="min-Quality" placeholder="-"></div>
+          <div><label for="min-Health">Health</label><input type="number" id="min-Health" placeholder="-"></div>
+          <div><label for="min-Growth">Growth</label><input type="number" id="min-Growth" placeholder="-"></div>
+          <div><label for="min-Value">Value</label><input type="number" id="min-Value" placeholder="-"></div>
+        </div>
+        <div class="cases">
+          <label><input type="checkbox" id="valo-attractive"> Only &laquo;&nbsp;Attractive&nbsp;&raquo; valuations</label>
+          <label><input type="checkbox" id="sweet-spot"> Sweet spot only (*)</label>
+          <label><input type="checkbox" id="sans-winsor"> Disable winsorization</label>
+          <label><input type="checkbox" id="methodo" checked> Also generate the Methodology page</label>
+        </div>
+      </div>
+    </details>
+
+    <div class="ligne-actions" style="margin-top:20px">
+      <button type="button" class="primaire" id="btn-generer">Generate the table</button>
+      <span id="statut" class="chargement cache"><span class="rondelle"></span><span id="statut-texte"></span></span>
+    </div>
+
+    <div id="messages"></div>
+  </section>
+
+  <section id="sorties"></section>
+</main>
+
+<footer>
+  Scoring and rendering happen entirely in your browser &mdash; same scoring engine as
+  <code>qs_screener.py</code>.
+</footer>
+
+<script type="module" src="js/app-tableau.js"></script>
+</body>
+</html>

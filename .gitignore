@@ -1,0 +1,28 @@
+# --- Environnement Python (143 Mo, se recree tout seul) ---------------
+.venv/
+__pycache__/
+*.pyc
+
+# --- Caches et sorties (regenerables) ---------------------------------
+# Cache EDGAR : 93 Mo de JSON retelechargeables a la demande.
+data/edgar_cache/
+# Liste des tickers SEC : la version compacte utilisee par le site est
+# versionnee dans web/data/tickers.json, celle-ci est un cache local.
+data/sec_company_tickers.json
+# Images, PDF et CSV produits par le screener et par qs_chart.
+qs_out/
+
+# --- macOS ------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# --- Editeurs ---------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+
+# --- Worker Cloudflare ------------------------------------------------
+worker/node_modules/
+worker/.wrangler/
+.dev.vars
