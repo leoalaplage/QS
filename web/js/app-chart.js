@@ -14,7 +14,7 @@ import { tracer, etiquetteValeur, familleUnite, COULEURS, TYPES_GRAPHE } from ".
 import { workerUrl, definirWorkerUrl } from "./qs-settings.js";
 import { lireEtat, ecrireEtat, effacerEtat } from "./qs-etat.js";
 import { ficheKpi } from "./qs-kpi.js";
-import { kpiOperationnels, TICKERS_COUVERTS } from "./qs-kpi-operationnels.js";
+import { decouvrir, dejaDecouvert, serieKpi } from "./qs-kpi-decouverte.js";
 import {
   $, el, vider, message, statut, respirer, telechargerCanvas, copierCanvas,
 } from "./qs-ui.js";
@@ -100,6 +100,7 @@ function dessinerSelections() {
   }
 
   dessinerTableMetriques();
+  if (typeof dessinerZoneDecouverte === "function") dessinerZoneDecouverte();
 
   // Au-dela de deux familles d'unites, plus rien ne peut etre gradue honnetement.
   const familles = [...new Set(metriques.filter((m) => m.visible).map((m) => familleUnite(m.unite)))];
@@ -243,7 +244,13 @@ function ajouterMetrique(cle) {
     message(messages, "info", "Four metrics maximum on a single chart.");
     return;
   }
-  const d = toutesLesMetriques()[cle];
+  let d = toutesLesMetriques()[cle];
+  if (!d && cle.startsWith("kpi:")) {
+    const { kpi } = serieKpi(cle);
+    if (!kpi) return;
+    d = { nom: `${kpi.ticker} · ${kpi.nom}`, unite: kpi.unite, graph: "line" };
+  }
+  if (!d) return;
   metriques.push({
     cle, nom: d.nom, unite: d.unite, visible: true,
     // barres pour les montants, courbe pour les ratios : le defaut de qs_chart.py
@@ -493,7 +500,17 @@ async function generer({ silencieux = false } = {}) {
           tags: [], devises: new Set(), formes: new Set(),
           derives: [], incoherences: [], points: 0,
         };
-        const serie = construireSerie(facts, m.cle, mode, cache, rapport);
+        // Un KPI decouvert est lu dans les communiques, pas dans le XBRL :
+        // il n'a qu'une seule serie, trimestrielle, et ne concerne que la
+        // societe dont il provient.
+        let serie;
+        if (m.cle.startsWith("kpi:")) {
+          if (m.cle.split(":")[1] !== s.ticker) continue;
+          serie = serieKpi(m.cle).serie;
+          rapport.formes.add("8-K EX-99.1");
+        } else {
+          serie = construireSerie(facts, m.cle, mode, cache, rapport);
+        }
         rapport.points = Object.keys(serie).length;
         rapports[`${s.ticker}|${m.cle}`] = { rapport, societe: s, metrique: m };
         brut.push({ societe: s, metrique: m, serie, rapport });
@@ -602,7 +619,6 @@ async function generer({ silencieux = false } = {}) {
 
   sorties.appendChild(blocGraphe(rendu, series, rapports, mode));
   await dessinerKpi(soc);
-  dessinerKpiOps(soc);
   if (!silencieux) sorties.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -870,116 +886,92 @@ async function dessinerKpi(soc) {
 
 
 // ---------------------------------------------------------------------
-// KPI operationnels : lus dans les communiques de resultats
+// Decouverte des KPI publies : marche pour n'importe quelle societe
 //
-//  Ils ne sont pas balises en XBRL (verifie sur le 10-K d'Airbnb : le GBV
-//  est dans le texte, absent du XBRL). On les lit donc dans la piece
-//  EX-99.1 du 8-K, avec une regle par societe -- d'ou une couverture qui
-//  s'etend societe par societe, et pas d'un coup.
+//  Aucune regle ecrite a la main. On lit les derniers communiques de
+//  resultats avec des motifs generiques, et on ne garde que ce qui revient
+//  d'un trimestre a l'autre -- un vrai indicateur est publie chaque
+//  trimestre, une phrase de circonstance non. Les KPI retenus rejoignent
+//  le menu des metriques et se tracent comme n'importe quelle autre.
 // ---------------------------------------------------------------------
-let jetonOps = 0;
+function dessinerZoneDecouverte() {
+  const zone = $("#zone-decouverte");
+  vider(zone);
+  if (!societes.length) return;
 
-function dessinerKpiOps(soc) {
-  const section = $("#kpi-ops");
-  const corps = $("#kpi-ops-corps");
-  const couverts = soc.filter((s) => TICKERS_COUVERTS.includes(s.ticker));
-
-  vider(corps);
-  if (!couverts.length) {
-    section.classList.remove("cache");
-    $("#kpi-ops-note").textContent = "";
-    corps.appendChild(el("p", {
-      classe: "aide",
-      texte: "None of the selected companies has an extraction rule yet. These KPIs are not XBRL-"
-        + "tagged anywhere in SEC filings — they only exist as prose in the quarterly earnings "
-        + "release — so each company needs its own rule. Covered so far: "
-        + TICKERS_COUVERTS.join(", ") + ".",
-    }));
-    return;
+  const ligne = el("div", { classe: "ligne-actions", style: "margin-top:10px" });
+  for (const s of societes) {
+    const deja = dejaDecouvert(s.ticker);
+    const b = el("button", {
+      type: "button",
+      texte: deja ? `${s.ticker}: ${deja.kpis.length} reported KPIs` : `Find ${s.ticker} reported KPIs`,
+      title: "Read the last earnings releases and pull out the indicators the company itself publishes",
+    });
+    b.addEventListener("click", () => lancerDecouverte(s, b));
+    ligne.appendChild(b);
   }
+  zone.appendChild(ligne);
 
-  section.classList.remove("cache");
-  $("#kpi-ops-note").textContent = "reading the last 8 earnings releases…";
-  const monJeton = ++jetonOps;
-
-  (async () => {
-    for (const s of couverts) {
-      let res;
-      try {
-        res = await kpiOperationnels(s.ticker, s.cik, 8, (t) => act.montrer(t));
-      } catch (e) {
-        corps.appendChild(el("p", { classe: "message erreur", texte: `${s.ticker}: ${e.message}` }));
-        continue;
-      }
-      act.cacher();
-      if (monJeton !== jetonOps) return;   // une autre generation a pris la main
-
-      const bloc = el("div", { style: "margin-bottom:22px" });
-      bloc.appendChild(el("h3", { texte: `${s.ticker} — ${s.nom}` }));
-
-      const table = el("table", { classe: "kpi-table" });
-      const entete = el("tr");
-      for (const t of ["Indicator", "Latest", "Previous quarters", "Source"]) {
-        entete.appendChild(el("th", { texte: t }));
-      }
-      table.appendChild(entete);
-
-      for (const serie of Object.values(res.series)) {
-        const tr = el("tr");
-        const c1 = el("td", { classe: "kpi-nom" });
-        c1.appendChild(el("span", { texte: serie.nom }));
-        if (serie.note) c1.appendChild(el("div", { classe: "aide", texte: serie.note }));
-        tr.appendChild(c1);
-
-        const pts = serie.points;
-        const fmt = (v) => (serie.unite === "pct" ? `${v}%`
-          : serie.unite === "money" ? etiquetteValeur(v, "money", "USD") : String(v));
-
-        const c2 = el("td", { classe: "kpi-val" });
-        if (pts.length) {
-          const d = pts[pts.length - 1];
-          c2.appendChild(el("div", { classe: "v", texte: fmt(d.valeur) }));
-          c2.appendChild(el("div", { classe: "sous", texte: d.date }));
-        } else {
-          c2.appendChild(el("span", { classe: "vide", texte: "not found" }));
-        }
-        tr.appendChild(c2);
-
-        const c3 = el("td", { classe: "kpi-val" });
-        c3.appendChild(el("div", {
-          classe: "sous",
-          texte: pts.slice(0, -1).slice(-5).map((p) => `${p.date.slice(0, 7)} ${fmt(p.valeur)}`).join("  ·  ") || "—",
-        }));
-        tr.appendChild(c3);
-
-        const c4 = el("td");
-        if (pts.length) {
-          const d = pts[pts.length - 1];
-          const det = el("details", { classe: "audit", style: "margin:0;border:none;padding:0" });
-          det.appendChild(el("summary", { texte: "show the sentence" }));
-          det.appendChild(el("div", { classe: "extrait", texte: `“…${d.extrait}…”` }));
-          det.appendChild(el("a", {
-            classe: "lien-mda",
-            href: `https://www.sec.gov/Archives/edgar/data/${s.cik}/${d.accession}/`,
-            target: "_blank", rel: "noopener", texte: "open the filing ↗",
-          }));
-          c4.appendChild(det);
-        }
-        tr.appendChild(c4);
-        table.appendChild(tr);
-      }
-      bloc.appendChild(table);
-      corps.appendChild(bloc);
-    }
-
-    $("#kpi-ops-note").textContent = `${couverts.length} covered company(ies)`;
-    corps.appendChild(el("p", {
-      classe: "aide", style: "margin-top:10px",
-      texte: "These figures are read from the text of each quarterly earnings release (8-K, exhibit "
-        + "99.1), because no SEC filing tags them in XBRL. Every value keeps the exact sentence it "
-        + "came from — open \"show the sentence\" to check it against the filing. When a company "
-        + "rewords its release the rule stops matching and the row reads \"not found\": it never "
-        + "guesses a number.",
+  const tousKpis = societes.flatMap((s) => (dejaDecouvert(s.ticker)?.kpis) || []);
+  if (tousKpis.length) {
+    zone.appendChild(el("p", {
+      classe: "aide",
+      texte: "Reported KPIs are listed at the bottom of the metric menu, one group per company. "
+        + "They come from the text of the quarterly earnings release, so they only exist quarterly.",
     }));
-  })();
+  }
 }
+
+async function lancerDecouverte(s, bouton) {
+  bouton.disabled = true;
+  const avant = bouton.textContent;
+  bouton.textContent = `Reading ${s.ticker}…`;
+  try {
+    const res = await decouvrir(s.ticker, s.cik, {
+      trimestres: 8, forcer: true, surAvancement: (t) => act.montrer(t),
+    });
+    act.cacher();
+    vider(messages);
+    if (!res.kpis.length) {
+      message(messages, "info",
+        `No recurring indicator found for ${s.ticker} over its last ${res.depots} earnings releases. `
+        + "Either the company files no 8-K earnings release (common for foreign filers), or it "
+        + "words its figures in a way the generic patterns do not catch.");
+    } else {
+      message(messages, "ok",
+        `${s.ticker}: ${res.kpis.length} indicators published in every release `
+        + `(${res.depots} releases read, ${res.rejetes.length} one-off figures discarded). `
+        + "They are now at the bottom of the metric menu.");
+    }
+    majMenuKpis();
+    dessinerZoneDecouverte();
+  } catch (e) {
+    act.cacher();
+    message(messages, "erreur", `${s.ticker}: ${e.message}`);
+    bouton.textContent = avant;
+  } finally {
+    bouton.disabled = false;
+  }
+}
+
+/** Ajoute les KPI decouverts au menu des metriques, groupes par societe. */
+function majMenuKpis() {
+  for (const g of [...selMetrique.querySelectorAll("optgroup")]) {
+    if (g.label.startsWith("Reported KPIs")) g.remove();
+  }
+  for (const s of societes) {
+    const d = dejaDecouvert(s.ticker);
+    if (!d || !d.kpis.length) continue;
+    const groupe = el("optgroup", { label: `Reported KPIs — ${s.ticker}` });
+    for (const k of d.kpis) {
+      groupe.appendChild(el("option", {
+        value: k.cle,
+        texte: `${k.nom} (${k.points.length}q)`,
+      }));
+    }
+    selMetrique.appendChild(groupe);
+  }
+}
+
+majMenuKpis();
+dessinerZoneDecouverte();

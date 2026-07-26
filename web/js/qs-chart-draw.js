@@ -516,7 +516,8 @@ export function tracer({
   police(8);
   c.fillStyle = "#94a3b8";
   c.textAlign = "right";
-  c.fillText("Source: SEC EDGAR (XBRL)  -  QS Chart", L - 0.01 * L, H - 0.02 * H);
+  // « XBRL » serait faux des qu'un KPI lu dans un communique est trace.
+  c.fillText("Source: SEC EDGAR filings  -  QS Chart", L - 0.01 * L, H - 0.02 * H);
   c.textAlign = "left";
 
   // -- legende ---------------------------------------------------------
