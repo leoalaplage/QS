@@ -14,6 +14,7 @@ import { tracer, etiquetteValeur, familleUnite, COULEURS, TYPES_GRAPHE } from ".
 import { workerUrl, definirWorkerUrl } from "./qs-settings.js";
 import { lireEtat, ecrireEtat, effacerEtat } from "./qs-etat.js";
 import { ficheKpi } from "./qs-kpi.js";
+import { kpiOperationnels, TICKERS_COUVERTS } from "./qs-kpi-operationnels.js";
 import {
   $, el, vider, message, statut, respirer, telechargerCanvas, copierCanvas,
 } from "./qs-ui.js";
@@ -601,6 +602,7 @@ async function generer({ silencieux = false } = {}) {
 
   sorties.appendChild(blocGraphe(rendu, series, rapports, mode));
   await dessinerKpi(soc);
+  dessinerKpiOps(soc);
   if (!silencieux) sorties.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -748,7 +750,22 @@ function panneauAudit(rapports, mode) {
   }));
 })();
 
+// ---------------------------------------------------------------------
+// Amorcage : APRES toutes les declarations. Amorcer plus haut appelait
+// rafraichir(), qui lit une variable `let` definie plus bas -- zone morte
+// temporelle : le module s'arretait la et la recherche de societes ne
+// s'attachait jamais.
+// ---------------------------------------------------------------------
+if (!metriques.length) {
+  const d = toutesLesMetriques().revenue;
+  metriques.push({
+    cle: "revenue", nom: d.nom, unite: d.unite, visible: true, type: "bar",
+    couleur: COULEURS[0],
+    overlays: { moyenne: false, mediane: false, extremes: false, tendance: false },
+  });
+}
 dessinerSelections();
+if (societes.length) rafraichir();
 
 
 // ---------------------------------------------------------------------
@@ -849,4 +866,120 @@ async function dessinerKpi(soc) {
   const periodes = [...new Set(fiches.map((f) => f.fiche.periode).filter(Boolean))];
   $("#kpi-note").textContent = periodes.length ? `latest TTM period: ${periodes.join(", ")}` : "";
   section.classList.remove("cache");
+}
+
+
+// ---------------------------------------------------------------------
+// KPI operationnels : lus dans les communiques de resultats
+//
+//  Ils ne sont pas balises en XBRL (verifie sur le 10-K d'Airbnb : le GBV
+//  est dans le texte, absent du XBRL). On les lit donc dans la piece
+//  EX-99.1 du 8-K, avec une regle par societe -- d'ou une couverture qui
+//  s'etend societe par societe, et pas d'un coup.
+// ---------------------------------------------------------------------
+let jetonOps = 0;
+
+function dessinerKpiOps(soc) {
+  const section = $("#kpi-ops");
+  const corps = $("#kpi-ops-corps");
+  const couverts = soc.filter((s) => TICKERS_COUVERTS.includes(s.ticker));
+
+  vider(corps);
+  if (!couverts.length) {
+    section.classList.remove("cache");
+    $("#kpi-ops-note").textContent = "";
+    corps.appendChild(el("p", {
+      classe: "aide",
+      texte: "None of the selected companies has an extraction rule yet. These KPIs are not XBRL-"
+        + "tagged anywhere in SEC filings — they only exist as prose in the quarterly earnings "
+        + "release — so each company needs its own rule. Covered so far: "
+        + TICKERS_COUVERTS.join(", ") + ".",
+    }));
+    return;
+  }
+
+  section.classList.remove("cache");
+  $("#kpi-ops-note").textContent = "reading the last 8 earnings releases…";
+  const monJeton = ++jetonOps;
+
+  (async () => {
+    for (const s of couverts) {
+      let res;
+      try {
+        res = await kpiOperationnels(s.ticker, s.cik, 8, (t) => act.montrer(t));
+      } catch (e) {
+        corps.appendChild(el("p", { classe: "message erreur", texte: `${s.ticker}: ${e.message}` }));
+        continue;
+      }
+      act.cacher();
+      if (monJeton !== jetonOps) return;   // une autre generation a pris la main
+
+      const bloc = el("div", { style: "margin-bottom:22px" });
+      bloc.appendChild(el("h3", { texte: `${s.ticker} — ${s.nom}` }));
+
+      const table = el("table", { classe: "kpi-table" });
+      const entete = el("tr");
+      for (const t of ["Indicator", "Latest", "Previous quarters", "Source"]) {
+        entete.appendChild(el("th", { texte: t }));
+      }
+      table.appendChild(entete);
+
+      for (const serie of Object.values(res.series)) {
+        const tr = el("tr");
+        const c1 = el("td", { classe: "kpi-nom" });
+        c1.appendChild(el("span", { texte: serie.nom }));
+        if (serie.note) c1.appendChild(el("div", { classe: "aide", texte: serie.note }));
+        tr.appendChild(c1);
+
+        const pts = serie.points;
+        const fmt = (v) => (serie.unite === "pct" ? `${v}%`
+          : serie.unite === "money" ? etiquetteValeur(v, "money", "USD") : String(v));
+
+        const c2 = el("td", { classe: "kpi-val" });
+        if (pts.length) {
+          const d = pts[pts.length - 1];
+          c2.appendChild(el("div", { classe: "v", texte: fmt(d.valeur) }));
+          c2.appendChild(el("div", { classe: "sous", texte: d.date }));
+        } else {
+          c2.appendChild(el("span", { classe: "vide", texte: "not found" }));
+        }
+        tr.appendChild(c2);
+
+        const c3 = el("td", { classe: "kpi-val" });
+        c3.appendChild(el("div", {
+          classe: "sous",
+          texte: pts.slice(0, -1).slice(-5).map((p) => `${p.date.slice(0, 7)} ${fmt(p.valeur)}`).join("  ·  ") || "—",
+        }));
+        tr.appendChild(c3);
+
+        const c4 = el("td");
+        if (pts.length) {
+          const d = pts[pts.length - 1];
+          const det = el("details", { classe: "audit", style: "margin:0;border:none;padding:0" });
+          det.appendChild(el("summary", { texte: "show the sentence" }));
+          det.appendChild(el("div", { classe: "extrait", texte: `“…${d.extrait}…”` }));
+          det.appendChild(el("a", {
+            classe: "lien-mda",
+            href: `https://www.sec.gov/Archives/edgar/data/${s.cik}/${d.accession}/`,
+            target: "_blank", rel: "noopener", texte: "open the filing ↗",
+          }));
+          c4.appendChild(det);
+        }
+        tr.appendChild(c4);
+        table.appendChild(tr);
+      }
+      bloc.appendChild(table);
+      corps.appendChild(bloc);
+    }
+
+    $("#kpi-ops-note").textContent = `${couverts.length} covered company(ies)`;
+    corps.appendChild(el("p", {
+      classe: "aide", style: "margin-top:10px",
+      texte: "These figures are read from the text of each quarterly earnings release (8-K, exhibit "
+        + "99.1), because no SEC filing tags them in XBRL. Every value keeps the exact sentence it "
+        + "came from — open \"show the sentence\" to check it against the filing. When a company "
+        + "rewords its release the rule stops matching and the row reads \"not found\": it never "
+        + "guesses a number.",
+    }));
+  })();
 }

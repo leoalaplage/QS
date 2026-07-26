@@ -40,7 +40,7 @@ const json = (donnees, statut = 200) =>
   });
 
 /** Recupere une URL SEC en passant par le cache du Worker. */
-async function relayer(url, ctx) {
+async function relayer(url, ctx, estJson = true) {
   const cache = caches.default;
   const cle = new Request(url, { method: "GET" });
 
@@ -53,7 +53,7 @@ async function relayer(url, ctx) {
   }
 
   const amont = await fetch(url, {
-    headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
+    headers: { "User-Agent": USER_AGENT, Accept: estJson ? "application/json" : "text/html,*/*" },
     cf: { cacheTtl: CACHE_SECONDES, cacheEverything: true },
   });
 
@@ -67,7 +67,9 @@ async function relayer(url, ctx) {
   const reponse = new Response(amont.body, {
     status: 200,
     headers: {
-      "Content-Type": "application/json; charset=utf-8",
+      "Content-Type": estJson
+        ? "application/json; charset=utf-8"
+        : (amont.headers.get("Content-Type") || "text/html; charset=utf-8"),
       "Cache-Control": `public, max-age=${CACHE_SECONDES}`,
       ...enTetesCors,
     },
@@ -97,6 +99,28 @@ export default {
       return relayer(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`, ctx);
     }
 
-    return json({ erreur: "Route inconnue", routes: ["/facts/<CIK>", "/tickers"] }, 404);
+    // Liste des depots d'une societe : sert a retrouver les 8-K de resultats.
+    const s = chemin.match(/^\/submissions\/(\d{1,10})$/);
+    if (s) {
+      const cik = String(Number(s[1])).padStart(10, "0");
+      return relayer(`https://data.sec.gov/submissions/CIK${cik}.json`, ctx);
+    }
+
+    // Contenu d'un depot. Le nom de fichier est libre cote SEC (un communique
+    // de resultats s'appelle "exhibit991earningsrelease-.htm" chez l'un et
+    // "erq2fy26.htm" chez l'autre), d'ou le passe-plat.
+    const a = chemin.match(/^\/archive\/(\d{1,10})\/(\d{10,20})\/(.+)$/);
+    if (a) {
+      const cik = Number(a[1]);
+      const nom = a[3];
+      // On refuse tout ce qui n'est pas un fichier de depot : pas de traversee.
+      if (!/^[\w.-]+$/.test(nom)) return json({ erreur: "Nom de fichier invalide" }, 400);
+      return relayer(`https://www.sec.gov/Archives/edgar/data/${cik}/${a[2]}/${nom}`, ctx, false);
+    }
+
+    return json({
+      erreur: "Route inconnue",
+      routes: ["/facts/<CIK>", "/submissions/<CIK>", "/archive/<CIK>/<accession>/<fichier>", "/tickers"],
+    }, 404);
   },
 };
