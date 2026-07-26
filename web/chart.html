@@ -24,59 +24,56 @@
     with the SEC.
   </p>
 
-  <section class="carte">
+  <section class="carte panneau">
     <!-- 1. Companies -------------------------------------------------- -->
-    <h2>Companies</h2>
-    <div class="champ-recherche" style="max-width:420px">
-      <input type="text" id="recherche" placeholder="Novo Nordisk, ASML, AAPL&hellip;" autocomplete="off">
-      <div id="resultats-recherche" class="suggestions cache"></div>
-    </div>
-    <div id="selection-vide" class="aide" style="margin-top:10px">
-      None selected. Search above, or click a suggestion:
-      <span id="suggestions-rapides"></span>
-    </div>
-    <div id="selection" class="jetons"></div>
-
-    <!-- 2. Metrics ---------------------------------------------------- -->
-    <h2 style="margin-top:24px">Metrics</h2>
-    <div class="ligne-actions" style="margin-top:0">
-      <select id="metrique" style="max-width:420px"></select>
-      <button type="button" id="btn-ajout-metrique">Add metric</button>
-    </div>
-    <div id="metriques" class="jetons"></div>
-    <p class="aide" id="note-axes"></p>
-
-    <!-- 3. Display ---------------------------------------------------- -->
-    <h2 style="margin-top:24px">Display</h2>
-    <div class="grille">
-      <div>
-        <label for="periode">Period</label>
-        <select id="periode">
-          <option value="annuel">Annual</option>
-          <option value="trimestre">Quarterly</option>
-          <option value="ttm">TTM (trailing twelve months)</option>
-        </select>
+    <div class="bloc">
+      <div class="bloc-titre"><span class="etape">1</span>Companies</div>
+      <div class="champ-recherche" style="max-width:420px">
+        <input type="text" id="recherche" placeholder="Search by name or ticker&hellip;" autocomplete="off">
+        <div id="resultats-recherche" class="suggestions cache"></div>
       </div>
-      <div>
-        <label for="type-graphe">Chart type</label>
-        <select id="type-graphe">
-          <option value="line">Line</option>
-          <option value="bar">Bars</option>
-          <option value="auto">Auto (bars for amounts, line for ratios)</option>
-        </select>
-      </div>
-      <div>
-        <label for="annees">History depth</label>
-        <div class="presets" id="presets-duree"></div>
-        <input type="number" id="annees" min="1" max="40" value="15" style="margin-top:6px">
+      <div id="selection" class="jetons"></div>
+      <div id="selection-vide" class="aide">
+        None selected &mdash; try:
+        <span id="suggestions-rapides"></span>
       </div>
     </div>
-    <div class="cases">
-      <label><input type="checkbox" id="ov-moyenne"> Show average</label>
-      <label><input type="checkbox" id="ov-extremes"> Mark high &amp; low</label>
+
+    <!-- 2. Metrics & style -------------------------------------------- -->
+    <div class="bloc">
+      <div class="bloc-titre"><span class="etape">2</span>Metrics &amp; style</div>
+      <div class="ligne-actions" style="margin-top:0">
+        <select id="metrique" style="max-width:360px"></select>
+        <button type="button" id="btn-ajout-metrique">+ Add</button>
+      </div>
+      <div id="table-metriques"></div>
+      <p class="aide" id="note-axes"></p>
     </div>
 
-    <div class="ligne-actions" style="margin-top:20px">
+    <!-- 3. Period & range --------------------------------------------- -->
+    <div class="bloc">
+      <div class="bloc-titre"><span class="etape">3</span>Period &amp; range</div>
+      <div class="reglages">
+        <div>
+          <label for="periode">Reporting period</label>
+          <select id="periode">
+            <option value="annuel">Annual</option>
+            <option value="trimestre">Quarterly</option>
+            <option value="ttm">TTM (trailing twelve months)</option>
+          </select>
+        </div>
+        <div>
+          <label for="annees">History depth</label>
+          <div class="presets" id="presets-duree"></div>
+        </div>
+        <div>
+          <label for="annees">Or exactly (years)</label>
+          <input type="number" id="annees" min="1" max="40" value="15">
+        </div>
+      </div>
+    </div>
+
+    <div class="ligne-actions barre-finale">
       <button type="button" class="primaire" id="btn-generer">Generate the chart</button>
       <button type="button" class="lien" id="btn-relais">EDGAR relay&hellip;</button>
       <span id="statut" class="chargement cache"><span class="rondelle"></span><span id="statut-texte"></span></span>

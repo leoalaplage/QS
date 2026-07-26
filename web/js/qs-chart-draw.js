@@ -17,6 +17,16 @@ const FIG_L = 11, FIG_H = 6;   // pouces, comme figsize=(11, 6)
 const SYMBOLES = { USD: "$", EUR: "€", GBP: "£", JPY: "¥", CHF: "CHF ", CAD: "C$", AUD: "A$" };
 const symbole = (devise) => SYMBOLES[devise] || (devise ? `${devise} ` : "$");
 
+// Types de trace proposes. "auto" est resolu par l'appelant.
+export const TYPES_GRAPHE = [
+  ["line", "Line"],
+  ["area", "Area"],
+  ["step", "Stepped line"],
+  ["bar", "Bars"],
+  ["bar-stacked", "Stacked bars"],
+  ["scatter", "Points only"],
+];
+
 // Familles d'unites : deux metriques de la meme famille partagent un axe.
 export const familleUnite = (u) => (u === "money" || u === "per_share" ? "money"
   : u === "pct" ? "pct" : u === "shares" ? "shares" : "ratio");
@@ -43,11 +53,19 @@ export function fmtShares(v) {
 
 const fmtG = (v) => String(parseFloat(Number(v).toPrecision(6)));
 
+/**
+ * Decimales d'un pourcentage. Au-dessus de 10 % l'unite suffit : afficher
+ * « 49.9% » pour une marge est un faux gain de precision, on ecrit « 50% ».
+ * En dessous, la decimale porte l'information (un FCF yield de 2,4 % ne doit
+ * pas devenir 2 %).
+ */
+const decimalesPct = (v) => (Math.abs(v) >= 10 ? 0 : 1);
+
 /** Etiquette d'une valeur, selon l'unite de sa metrique. */
 export function etiquetteValeur(v, unite, devise) {
   switch (unite) {
     case "money": return fmtMontant(v, devise);
-    case "pct": return `${v.toFixed(1)}%`;
+    case "pct": return `${v.toFixed(decimalesPct(v))}%`;
     case "per_share": return `${symbole(devise)}${v.toFixed(2)}`;
     case "shares": return fmtShares(v);
     case "ratio": return v.toFixed(2);
@@ -59,6 +77,7 @@ function etiquetteAxe(v, unite, pas, devise) {
   switch (unite) {
     case "money": return fmtMontant(v, devise);
     case "pct": {
+      // sur un axe, c'est le PAS qui dicte la precision utile
       const dec = pas >= 1 ? 0 : pas >= 0.1 ? 1 : 2;
       return `${v.toFixed(dec)}%`;
     }
@@ -134,7 +153,22 @@ export function stats(points) {
     if (p.y > haut.y) haut = p;
     if (p.y < bas.y) bas = p;
   }
-  return { moyenne: somme / ys.length, haut, bas, dernier: points[points.length - 1] };
+  const tri = [...ys].sort((a, b) => a - b);
+  const m = Math.floor(tri.length / 2);
+  const mediane = tri.length % 2 ? tri[m] : (tri[m - 1] + tri[m]) / 2;
+  return { moyenne: somme / ys.length, mediane, haut, bas, dernier: points[points.length - 1] };
+}
+
+/** Droite des moindres carres : y = a.x + b. null si elle n'a pas de sens. */
+export function tendance(points) {
+  const n = points.length;
+  if (n < 3) return null;
+  let sx = 0, sy = 0, sxy = 0, sxx = 0;
+  for (const p of points) { sx += p.x; sy += p.y; sxy += p.x * p.y; sxx += p.x * p.x; }
+  const denom = n * sxx - sx * sx;
+  if (!denom) return null;
+  const a = (n * sxy - sx * sy) / denom;
+  return { a, b: (sy - a * sx) / n };
 }
 
 // ---------------------------------------------------------------------
@@ -193,14 +227,29 @@ export function tracer({
     : 1;
 
   const barres = visibles.filter((s) => s.type === "bar");
+  const empilees = visibles.filter((s) => s.type === "bar-stacked");
+  const aireOuBarre = visibles.filter((s) => ["bar", "bar-stacked", "area"].includes(s.type));
   const largeurGroupe = 0.68 * (pasX || 1);
-  if (barres.length) {
+  if (barres.length || empilees.length) {
     xMinD -= largeurGroupe / 2;
     xMaxD += largeurGroupe / 2;
-    for (const s of barres) {
-      const b = bornesY[s.axe];
-      b.min = Math.min(b.min, 0);
-      b.max = Math.max(b.max, 0);
+  }
+  // barres et aires s'appuient sur zero : il doit rester dans le cadrage
+  for (const s of aireOuBarre) {
+    const b = bornesY[s.axe];
+    b.min = Math.min(b.min, 0);
+    b.max = Math.max(b.max, 0);
+  }
+  // une pile monte plus haut que sa plus grande composante
+  if (empilees.length) {
+    const cumul = new Map();
+    for (const s of empilees) {
+      for (const p of s.points) cumul.set(p.x, (cumul.get(p.x) || 0) + p.y);
+    }
+    for (const v of cumul.values()) {
+      const b = bornesY[empilees[0].axe];
+      b.min = Math.min(b.min, v);
+      b.max = Math.max(b.max, v);
     }
   }
 
@@ -212,7 +261,8 @@ export function tracer({
 
   const echelles = bornesY.map((b, i) => {
     const etY = (b.max - b.min) || Math.abs(b.max) || 1;
-    const seulementBarres = visibles.filter((s) => s.axe === i).every((s) => s.type === "bar");
+    const seulementBarres = visibles.filter((s) => s.axe === i)
+      .every((s) => ["bar", "bar-stacked", "area"].includes(s.type));
     const colleBas = seulementBarres && b.min === 0;
     const colleHaut = seulementBarres && b.max === 0;
     const min = colleBas ? 0 : b.min - 0.05 * etY;
@@ -263,84 +313,149 @@ export function tracer({
 
   // -- series ----------------------------------------------------------
   const etiquettes = [];
-  const largeurBarre = barres.length ? largeurGroupe / barres.length : 0;
+  const largeurBarre = barres.length ? largeurGroupe / barres.length : largeurGroupe;
+  const basePile = new Map();   // x -> hauteur deja empilee
 
   visibles.forEach((s) => {
     const y = (v) => yPxAxe(v, s.axe);
-    if (s.type === "bar") {
-      const rang = barres.indexOf(s);
-      const w = (largeurBarre / (xMax - xMin)) * (droite - gauche);
-      const decalage = (rang - (barres.length - 1) / 2) * w;
-      const y0 = y(0);
+    const w = (largeurBarre / (xMax - xMin)) * (droite - gauche);
+
+    if (s.type === "bar" || s.type === "bar-stacked") {
+      const empile = s.type === "bar-stacked";
+      const rang = empile ? 0 : barres.indexOf(s);
+      const decalage = empile ? 0 : (rang - (barres.length - 1) / 2) * w;
       c.fillStyle = s.couleur;
       c.strokeStyle = "#ffffff";
       c.lineWidth = 0.5 * U;
       for (const p of s.points) {
-        const py = y(p.y), cx = xPx(p.x) + decalage;
-        c.fillRect(cx - w / 2, Math.min(py, y0), w, Math.abs(py - y0));
-        if (w > 3 * U) c.strokeRect(cx - w / 2, Math.min(py, y0), w, Math.abs(py - y0));
+        const socle = empile ? (basePile.get(p.x) || 0) : 0;
+        if (empile) basePile.set(p.x, socle + p.y);
+        const yHaut = y(socle + p.y), yBas = y(socle);
+        const cx = xPx(p.x) + decalage;
+        c.fillRect(cx - w / 2, Math.min(yHaut, yBas), w, Math.abs(yHaut - yBas));
+        if (w > 3 * U) c.strokeRect(cx - w / 2, Math.min(yHaut, yBas), w, Math.abs(yHaut - yBas));
         if (montreEtiquettes) {
-          etiquettes.push({ x: cx, y: p.y >= 0 ? py - 4 * U : py + 12 * U,
+          etiquettes.push({ x: cx, y: p.y >= 0 ? yHaut - 4 * U : yHaut + 12 * U,
             texte: etiquetteValeur(p.y, s.unite, s.devise) });
         }
       }
-    } else {
-      c.strokeStyle = s.couleur;
+      return;
+    }
+
+    if (s.type === "scatter") {
       c.fillStyle = s.couleur;
-      c.lineWidth = 2.2 * U;
-      c.lineJoin = "round";
-      c.beginPath();
-      s.points.forEach((p, k) => {
-        const px = xPx(p.x), py = y(p.y);
-        if (k === 0) c.moveTo(px, py); else c.lineTo(px, py);
-      });
-      c.stroke();
-      const rayon = s.points.length > 40 ? 1.6 : 2.5;
       for (const p of s.points) {
-        c.beginPath(); c.arc(xPx(p.x), y(p.y), rayon * U, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.arc(xPx(p.x), y(p.y), 3.2 * U, 0, Math.PI * 2); c.fill();
         if (montreEtiquettes) {
           etiquettes.push({ x: xPx(p.x), y: y(p.y) - 8 * U,
             texte: etiquetteValeur(p.y, s.unite, s.devise) });
         }
       }
+      return;
+    }
+
+    // line / area / step : meme chemin, remplissage et paliers en option
+    const escalier = s.type === "step";
+    const chemin = () => {
+      c.beginPath();
+      s.points.forEach((p, idx) => {
+        const px = xPx(p.x), py = y(p.y);
+        if (idx === 0) { c.moveTo(px, py); return; }
+        if (escalier) {
+          const precedent = s.points[idx - 1];
+          c.lineTo(px, y(precedent.y));
+        }
+        c.lineTo(px, py);
+      });
+    };
+
+    if (s.type === "area") {
+      chemin();
+      const y0 = y(Math.max(echelles[s.axe].min, 0));
+      c.lineTo(xPx(s.points[s.points.length - 1].x), y0);
+      c.lineTo(xPx(s.points[0].x), y0);
+      c.closePath();
+      c.save();
+      c.globalAlpha = 0.18;
+      c.fillStyle = s.couleur;
+      c.fill();
+      c.restore();
+    }
+
+    c.strokeStyle = s.couleur;
+    c.lineWidth = 2.2 * U;
+    c.lineJoin = "round";
+    chemin();
+    c.stroke();
+
+    c.fillStyle = s.couleur;
+    const rayon = s.points.length > 40 ? 1.6 : 2.5;
+    for (const p of s.points) {
+      c.beginPath(); c.arc(xPx(p.x), y(p.y), rayon * U, 0, Math.PI * 2); c.fill();
+      if (montreEtiquettes) {
+        etiquettes.push({ x: xPx(p.x), y: y(p.y) - 8 * U,
+          texte: etiquetteValeur(p.y, s.unite, s.devise) });
+      }
     }
   });
 
-  // -- superpositions statistiques -------------------------------------
-  if (overlays.moyenne || overlays.extremes) {
-    for (const s of visibles) {
-      const st = stats(s.points);
-      if (!st) continue;
-      const y = (v) => yPxAxe(v, s.axe);
-      if (overlays.moyenne) {
+  // -- superpositions, activees SERIE PAR SERIE -------------------------
+  for (const s of visibles) {
+    const o = s.overlays || {};
+    if (!o.moyenne && !o.mediane && !o.extremes && !o.tendance) continue;
+    const st = stats(s.points);
+    if (!st) continue;
+    const y = (v) => yPxAxe(v, s.axe);
+
+    for (const [actif, valeur, tag] of [
+      [o.moyenne, st.moyenne, "avg"],
+      [o.mediane, st.mediane, "med"],
+    ]) {
+      if (!actif) continue;
+      c.save();
+      c.strokeStyle = s.couleur;
+      c.globalAlpha = 0.55;
+      c.lineWidth = 1.4 * U;
+      c.setLineDash(tag === "avg" ? [7 * U, 4 * U] : [2 * U, 3 * U]);
+      const ym = y(valeur);
+      c.beginPath(); c.moveTo(gauche, ym); c.lineTo(droite, ym); c.stroke();
+      c.restore();
+      police(8);
+      c.fillStyle = s.couleur;
+      c.textAlign = "left";
+      c.fillText(`${tag} ${etiquetteValeur(valeur, s.unite, s.devise)}`, gauche + 4 * U, y(valeur) - 7 * U);
+    }
+
+    if (o.tendance) {
+      const t = tendance(s.points);
+      if (t) {
+        const x0 = s.points[0].x, x1 = s.points[s.points.length - 1].x;
         c.save();
         c.strokeStyle = s.couleur;
-        c.globalAlpha = 0.55;
-        c.lineWidth = 1.4 * U;
-        c.setLineDash([7 * U, 4 * U]);
-        const ym = y(st.moyenne);
-        c.beginPath(); c.moveTo(gauche, ym); c.lineTo(droite, ym); c.stroke();
+        c.globalAlpha = 0.7;
+        c.lineWidth = 1.6 * U;
+        c.setLineDash([10 * U, 5 * U]);
+        c.beginPath();
+        c.moveTo(xPx(x0), y(t.a * x0 + t.b));
+        c.lineTo(xPx(x1), y(t.a * x1 + t.b));
+        c.stroke();
         c.restore();
-        police(8);
+      }
+    }
+
+    if (o.extremes) {
+      police(8, true);
+      for (const [pt, tag] of [[st.haut, "high"], [st.bas, "low"]]) {
+        const px = xPx(pt.x), py = y(pt.y);
+        c.beginPath();
+        c.arc(px, py, 4.5 * U, 0, Math.PI * 2);
+        c.strokeStyle = s.couleur; c.lineWidth = 1.6 * U; c.stroke();
         c.fillStyle = s.couleur;
-        c.textAlign = "left";
-        c.fillText(`avg ${etiquetteValeur(st.moyenne, s.unite, s.devise)}`, gauche + 4 * U, ym - 7 * U);
-        c.textAlign = "left";
+        c.textAlign = "center";
+        c.fillText(`${tag} ${etiquetteValeur(pt.y, s.unite, s.devise)}`,
+          px, tag === "high" ? py - 13 * U : py + 13 * U);
       }
-      if (overlays.extremes) {
-        police(8, true);
-        for (const [pt, tag] of [[st.haut, "high"], [st.bas, "low"]]) {
-          const px = xPx(pt.x), py = y(pt.y);
-          c.beginPath();
-          c.arc(px, py, 4.5 * U, 0, Math.PI * 2);
-          c.strokeStyle = s.couleur; c.lineWidth = 1.6 * U; c.stroke();
-          c.fillStyle = s.couleur;
-          c.textAlign = "center";
-          c.fillText(`${tag} ${etiquetteValeur(pt.y, s.unite, s.devise)}`,
-            px, tag === "high" ? py - 13 * U : py + 13 * U);
-          c.textAlign = "left";
-        }
-      }
+      c.textAlign = "left";
     }
   }
 

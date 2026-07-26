@@ -9,7 +9,7 @@ import {
   chercherSocietes, chargerTickers, chargerFacts, construireSerie, modesDisponibles,
   decoderCle, MODES, LIBELLES_MODES, LIBELLES_COURTS, ErreurWorker,
 } from "./qs-chart-edgar.js";
-import { tracer, etiquetteValeur, familleUnite, COULEURS } from "./qs-chart-draw.js";
+import { tracer, etiquetteValeur, familleUnite, COULEURS, TYPES_GRAPHE } from "./qs-chart-draw.js";
 import { workerUrl, definirWorkerUrl } from "./qs-settings.js";
 import {
   $, el, vider, message, statut, respirer, telechargerCanvas, copierCanvas,
@@ -70,15 +70,7 @@ function dessinerSelections() {
     }));
   }
 
-  const zm = $("#metriques");
-  vider(zm);
-  for (const m of metriques) {
-    zm.appendChild(jeton({
-      titre: m.nom, entree: m,
-      onBascule: () => { m.visible = !m.visible; dessinerSelections(); rafraichir(); },
-      onRetrait: () => { metriques.splice(metriques.indexOf(m), 1); dessinerSelections(); rafraichir(); },
-    }));
-  }
+  dessinerTableMetriques();
 
   // Au-dela de deux familles d'unites, plus rien ne peut etre gradue honnetement.
   const familles = [...new Set(metriques.filter((m) => m.visible).map((m) => familleUnite(m.unite)))];
@@ -94,6 +86,92 @@ function dessinerSelections() {
     note.textContent = "";
   }
 }
+
+const SUPERPOSITIONS = [
+  ["moyenne", "Avg", "Average over the displayed window"],
+  ["mediane", "Median", "Median over the displayed window"],
+  ["extremes", "Hi/Lo", "Mark the highest and lowest point"],
+  ["tendance", "Trend", "Least-squares trend line"],
+];
+
+/**
+ * Une ligne par metrique : couleur, type de trace et superpositions, chacune
+ * reglable independamment. C'est volontairement une table et non des jetons :
+ * quatre reglages par metrique ne tiennent pas dans une pastille.
+ */
+function dessinerTableMetriques() {
+  const zone = $("#table-metriques");
+  vider(zone);
+  if (!metriques.length) {
+    zone.appendChild(el("p", { classe: "aide", texte: "No metric yet — pick one above and press Add." }));
+    return;
+  }
+
+  const table = el("table", { classe: "tbl-metriques" });
+  const entete = el("tr");
+  for (const t of ["Metric", "Chart type", "Overlays", ""]) entete.appendChild(el("th", { texte: t }));
+  table.appendChild(entete);
+
+  metriques.forEach((m, i) => {
+    const tr = el("tr", { classe: m.visible ? "" : "masquee" });
+
+    const tdNom = el("td");
+    const nom = el("div", { classe: "nom" });
+    nom.appendChild(el("span", { classe: "pastille", style: `background:${couleurMetrique(i)}` }));
+    nom.appendChild(el("span", { texte: m.nom }));
+    tdNom.appendChild(nom);
+    tr.appendChild(tdNom);
+
+    const tdType = el("td");
+    const sel = el("select");
+    for (const [v, libelle] of TYPES_GRAPHE) sel.appendChild(el("option", { value: v, texte: libelle }));
+    sel.value = m.type;
+    sel.addEventListener("change", () => { m.type = sel.value; rafraichir(); });
+    tdType.appendChild(sel);
+    tr.appendChild(tdType);
+
+    const tdSup = el("td");
+    const sup = el("div", { classe: "sup" });
+    for (const [cle, libelle, titre] of SUPERPOSITIONS) {
+      const lab = el("label", { title: titre });
+      const cb = el("input", { type: "checkbox" });
+      cb.checked = !!m.overlays[cle];
+      cb.addEventListener("change", () => { m.overlays[cle] = cb.checked; rafraichir(); });
+      lab.appendChild(cb);
+      lab.appendChild(el("span", { texte: libelle }));
+      sup.appendChild(lab);
+    }
+    tdSup.appendChild(sup);
+    tr.appendChild(tdSup);
+
+    const tdAct = el("td");
+    const actions = el("div", { classe: "actions" });
+    const oeil = el("button", {
+      type: "button", texte: m.visible ? "◉" : "◎",
+      title: m.visible ? `Hide ${m.nom}` : `Show ${m.nom}`,
+    });
+    oeil.addEventListener("click", () => { m.visible = !m.visible; dessinerSelections(); rafraichir(); });
+    actions.appendChild(oeil);
+    const croix = el("button", { type: "button", texte: "×", title: `Remove ${m.nom}` });
+    croix.addEventListener("click", () => {
+      metriques.splice(metriques.indexOf(m), 1);
+      dessinerSelections();
+      rafraichir();
+    });
+    actions.appendChild(croix);
+    tdAct.appendChild(actions);
+    tr.appendChild(tdAct);
+
+    table.appendChild(tr);
+  });
+  zone.appendChild(table);
+}
+
+/**
+ * Couleur de reference d'une metrique. Les series sont construites societe
+ * par societe, donc la premiere serie de la metrique i tombe a l'index i.
+ */
+const couleurMetrique = (i) => COULEURS[i % COULEURS.length];
 
 function ajouterSociete(s) {
   if (societes.some((x) => x.ticker === s.ticker)) return;
@@ -112,7 +190,12 @@ function ajouterMetrique(cle) {
     return;
   }
   const d = toutesLesMetriques()[cle];
-  metriques.push({ cle, nom: d.nom, unite: d.unite, graph: d.graph, visible: true });
+  metriques.push({
+    cle, nom: d.nom, unite: d.unite, visible: true,
+    // barres pour les montants, courbe pour les ratios : le defaut de qs_chart.py
+    type: d.graph === "bar" ? "bar" : "line",
+    overlays: { moyenne: false, mediane: false, extremes: false, tendance: false },
+  });
   dessinerSelections();
 }
 
@@ -261,14 +344,34 @@ function brancherSurvol(zone, canvas, geo) {
       bulle.appendChild(ligne);
     }
 
-    const xAffiche = geo.xPx(meilleure) / ratio;
-    bulle.style.left = `${xAffiche}px`;
-    bulle.style.top = `${geo.haut / ratio}px`;
+    // Positionnement : tout est relatif au conteneur, pas au canvas. Il faut
+    // donc partir de offsetLeft/offsetTop, sinon le padding du cadre decale
+    // l'infobulle et le trait par rapport a l'axe des periodes.
+    const dx = canvas.offsetLeft, dy = canvas.offsetTop;
+    const xAffiche = dx + geo.xPx(meilleure) / ratio;
+
     trait.style.left = `${xAffiche}px`;
-    trait.style.top = `${geo.haut / ratio}px`;
+    trait.style.top = `${dy + geo.haut / ratio}px`;
     trait.style.height = `${(geo.bas - geo.haut) / ratio}px`;
-    bulle.classList.remove("cache");
     trait.classList.remove("cache");
+
+    // On affiche avant de mesurer, sinon la boite n'a pas de dimensions.
+    bulle.classList.remove("cache");
+    const lb = bulle.offsetWidth, hb = bulle.offsetHeight;
+    const yCurseur = (ev.clientY - r.top) / (r.height / canvas.height) / ratio;
+
+    // Horizontal : centre sur la periode, puis ramene dans le cadre.
+    const largeurCadre = zone.clientWidth;
+    let gauche = xAffiche - lb / 2;
+    gauche = Math.max(4, Math.min(gauche, largeurCadre - lb - 4));
+
+    // Vertical : au-dessus du curseur, sauf s'il n'y a pas la place -- c'est
+    // ce qui coupait la boite en haut du graphe.
+    let haut = dy + yCurseur - hb - 12;
+    if (haut < dy + 4) haut = dy + yCurseur + 18;
+
+    bulle.style.left = `${gauche}px`;
+    bulle.style.top = `${haut}px`;
   });
 }
 
@@ -298,8 +401,6 @@ async function generer({ silencieux = false } = {}) {
 
   const mode = $("#periode").value;
   const annees = Math.max(1, Number(champAnnees.value) || 15);
-  const typeChoisi = $("#type-graphe").value;
-  const overlays = { moyenne: $("#ov-moyenne").checked, extremes: $("#ov-extremes").checked };
 
   // -- collecte --------------------------------------------------------
   const brut = [];
@@ -343,9 +444,6 @@ async function generer({ silencieux = false } = {}) {
       .filter((p) => p.x >= xMinFenetre - 1e-9 && p.y != null && isFinite(p.y))
       .sort((a, c) => a.x - c.x);
     if (!points.length) { vides.push(`${b.societe.ticker} — ${b.metrique.nom}`); return; }
-    const type = typeChoisi === "auto"
-      ? (b.metrique.graph === "bar" && brut.length === 1 && !trimestriel ? "bar" : "line")
-      : typeChoisi;
     series.push({
       id: `${b.societe.ticker}|${b.metrique.cle}`,
       libelle: (soc.length > 1 && met.length > 1) ? `${b.societe.ticker} · ${b.metrique.nom}`
@@ -354,7 +452,9 @@ async function generer({ silencieux = false } = {}) {
       unite: b.metrique.unite,
       devise: [...b.rapport.devises][0] || "USD",
       couleur: COULEURS[i % COULEURS.length],
-      type,
+      type: b.metrique.type,
+      // les superpositions ne s'appliquent qu'a la metrique qui les demande
+      overlays: b.metrique.overlays,
     });
   });
 
@@ -390,7 +490,7 @@ async function generer({ silencieux = false } = {}) {
   let rendu;
   try {
     rendu = tracer({
-      series, titre, overlays,
+      series, titre,
       sousAxeX: trimestriel ? "Period (calendar quarter of period end)" : "Fiscal year",
     });
   } catch (e) {
@@ -426,9 +526,7 @@ async function generer({ silencieux = false } = {}) {
 }
 
 $("#btn-generer").addEventListener("click", () => generer());
-for (const id of ["#periode", "#type-graphe", "#ov-moyenne", "#ov-extremes"]) {
-  $(id).addEventListener("change", rafraichir);
-}
+$("#periode").addEventListener("change", rafraichir);
 champAnnees.addEventListener("change", rafraichir);
 
 // ---------------------------------------------------------------------
