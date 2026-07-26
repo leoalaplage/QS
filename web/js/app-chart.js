@@ -927,8 +927,9 @@ async function lancerDecouverte(s, bouton) {
   const avant = bouton.textContent;
   bouton.textContent = `Reading ${s.ticker}…`;
   try {
+    const trimestres = Number($("#profondeur-kpi").value) || 40;
     const res = await decouvrir(s.ticker, s.cik, {
-      trimestres: 8, forcer: true, surAvancement: (t) => act.montrer(t),
+      trimestres, forcer: true, surAvancement: (t) => act.montrer(t),
     });
     act.cacher();
     vider(messages);
@@ -939,8 +940,8 @@ async function lancerDecouverte(s, bouton) {
         + "words its figures in a way the generic patterns do not catch.");
     } else {
       message(messages, "ok",
-        `${s.ticker}: ${res.kpis.length} indicators published in every release `
-        + `(${res.depots} releases read, ${res.rejetes.length} one-off figures discarded). `
+        `${s.ticker}: ${res.kpis.length} recurring indicators found across ${res.depots} `
+        + `earnings releases (${res.periode || "?"}), ${res.rejetes.length} one-off figures discarded. `
         + "They are now at the bottom of the metric menu.");
     }
     majMenuKpis();

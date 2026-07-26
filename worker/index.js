@@ -106,6 +106,10 @@ export default {
       return relayer(`https://data.sec.gov/submissions/CIK${cik}.json`, ctx);
     }
 
+    // Archives de depots au-dela des 1000 derniers (filings.files).
+    const ar = chemin.match(/^\/submissions-archive\/([\w-]+\.json)$/);
+    if (ar) return relayer(`https://data.sec.gov/submissions/${ar[1]}`, ctx);
+
     // Contenu d'un depot. Le nom de fichier est libre cote SEC (un communique
     // de resultats s'appelle "exhibit991earningsrelease-.htm" chez l'un et
     // "erq2fy26.htm" chez l'autre), d'ou le passe-plat.

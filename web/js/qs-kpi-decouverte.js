@@ -31,12 +31,29 @@ import { lireEtat, ecrireEtat } from "./qs-etat.js";
 
 const MULT = { billion: 1e9, million: 1e6, trillion: 1e12, thousand: 1e3 };
 
-// Motifs generiques. Groupe 1 = libelle, groupe 2 = nombre, groupe 3 = ordre.
+// Fragment de libelle. Le « \\d? » final absorbe les appels de note de bas
+// de page collees au libelle (« Adjusted EBITDA 1 was $105.9 million »).
+const LIB = "([A-Z][A-Za-z][A-Za-z &/'\\-]{2,44}?)\\s*\\d?";
+
+/**
+ * Motifs generiques. Groupe 1 = libelle, groupe 2 = nombre, groupe 3 = ordre
+ * de grandeur eventuel.
+ *
+ * Il en faut plusieurs parce que la MEME societe change de formulation au
+ * fil des annees. Chez MSCI : « Retention Rate of 95.3% » en 2026,
+ * « Retention Rate at 94.0% » en 2017, « Operating revenues increased 11.3%
+ * to $254.2 million » en 2014. Sans ces variantes, l'historique s'arretait
+ * six ans en arriere.
+ */
 const MOTIFS = [
-  [/([A-Z][A-Za-z][A-Za-z &/'\-]{2,44}?) of \$([\d,.]+)\s*(billion|million|trillion)\b/g, "money"],
-  [/([A-Z][A-Za-z][A-Za-z &/'\-]{2,44}?) of ([\d.]+)\s*%/g, "pct"],
-  [/([A-Z][A-Za-z][A-Za-z &/'\-]{2,44}?) (?:grew|increased|rose|was up)(?: by)? ([\d.]+)\s*%/g, "pct"],
-  [/([A-Z][A-Za-z][A-Za-z &/'\-]{2,44}?) (?:was|were) \$([\d,.]+)\s*(billion|million|trillion)\b/g, "money"],
+  // niveaux
+  [new RegExp(LIB + " of \\$([\\d,.]+)\\s*(billion|million|trillion)\\b", "g"), "money"],
+  [new RegExp(LIB + " (?:was|were|totaled|totalled) \\$([\\d,.]+)\\s*(billion|million|trillion)\\b", "g"), "money"],
+  [new RegExp(LIB + " (?:of|at) ([\\d.]+)\\s*%", "g"), "pct"],
+  // variations, formulation directe
+  [new RegExp(LIB + " (?:grew|increased|rose|was up|declined|decreased|fell)(?: by)? ([\\d.]+)\\s*%", "g"), "pct"],
+  // variations, formulation inversee : « 11.7% increase in operating revenues »
+  [/([\d.]+)\s*% (?:increase|decrease|growth|decline) in ([a-z][A-Za-z &/'\-]{2,44}?)(?= to | ,|,| for | driven| compared|\.)/g, "pct-inverse"],
 ];
 
 // Debuts de phrase qui ressemblent a un libelle sans en etre un. Ils
@@ -71,13 +88,20 @@ export function scanner(texte) {
     motif.lastIndex = 0;
     let m;
     while ((m = motif.exec(texte)) !== null) {
-      const libelle = m[1].replace(/\s+/g, " ").replace(/^[\s,;:*-]+|[\s,;:*-]+$/g, "");
+      // le motif inverse (« 11.7% increase in operating revenues ») porte le
+      // nombre en premier et le libelle en second
+      const inverse = unite === "pct-inverse";
+      const brutLib = inverse ? m[2] : m[1];
+      const brutVal = inverse ? m[1] : m[2];
+      let libelle = brutLib.replace(/\s+/g, " ").replace(/^[\s,;:*-]+|[\s,;:*-]+$/g, "");
+      // les formulations inversees commencent en minuscule : on normalise
+      if (inverse) libelle = libelle.charAt(0).toUpperCase() + libelle.slice(1);
       if (!estLibelle(libelle) || trouves.has(libelle)) continue;
-      let v = parseFloat(m[2].replace(/,/g, ""));
+      let v = parseFloat(brutVal.replace(/,/g, ""));
       if (!isFinite(v)) continue;
       if (m[3]) v *= MULT[m[3].toLowerCase()] || 1;
       const d = Math.max(0, m.index - 55);
-      trouves.set(libelle, { unite, valeur: v, extrait: texte.slice(d, m.index + m[0].length + 30).trim() });
+      trouves.set(libelle, { unite: inverse ? "pct" : unite, valeur: v, extrait: texte.slice(d, m.index + m[0].length + 30).trim() });
     }
   }
   return trouves;
@@ -94,19 +118,53 @@ async function relais(chemin, json = true) {
   return json ? r.json() : r.text();
 }
 
-async function depotsResultats(cik, nb) {
-  const d = await relais(`/submissions/${cik}`);
-  const r = d.filings?.recent || {};
-  const out = [];
-  for (let i = 0; i < (r.form || []).length && out.length < nb; i++) {
-    if (r.form[i] !== "8-K" || !String(r.items[i] || "").includes("2.02")) continue;
+/** Extrait les 8-K de resultats d'un bloc de depots. */
+function moissonner(bloc, out, nb) {
+  for (let i = 0; i < (bloc.form || []).length && out.length < nb; i++) {
+    if (bloc.form[i] !== "8-K" || !String(bloc.items[i] || "").includes("2.02")) continue;
     out.push({
-      accession: r.accessionNumber[i].replace(/-/g, ""),
-      date: r.filingDate[i],
-      principal: r.primaryDocument[i],
+      accession: bloc.accessionNumber[i].replace(/-/g, ""),
+      date: bloc.filingDate[i],
+      principal: bloc.primaryDocument[i],
     });
   }
+}
+
+/**
+ * Les `nb` derniers 8-K de resultats.
+ *
+ * `filings.recent` s'arrete a 1000 depots, ce qui couvre une douzaine
+ * d'annees chez une societe active mais pas quinze. Au-dela, la SEC range
+ * l'historique dans des fichiers d'archive listes par `filings.files` :
+ * on les ouvre, du plus recent au plus ancien, tant qu'il en faut.
+ */
+async function depotsResultats(cik, nb) {
+  const d = await relais(`/submissions/${cik}`);
+  const out = [];
+  moissonner(d.filings?.recent || {}, out, nb);
+
+  const archives = [...(d.filings?.files || [])]
+    .sort((a, b) => String(b.filingTo).localeCompare(String(a.filingTo)));
+  for (const fichier of archives) {
+    if (out.length >= nb) break;
+    try {
+      const bloc = await relais(`/submissions-archive/${fichier.name}`);
+      // ces fichiers sont des tableaux paralleles, comme `recent`
+      moissonner(bloc, out, nb);
+    } catch { /* une archive illisible ne doit pas tout arreter */ }
+  }
   return out;
+}
+
+/** Execute des taches par petits paquets : plus rapide sans saturer la SEC. */
+async function parPaquets(items, taille, travail, surAvancement = () => {}) {
+  const resultats = [];
+  for (let i = 0; i < items.length; i += taille) {
+    const lot = items.slice(i, i + taille);
+    surAvancement(i + lot.length, items.length);
+    resultats.push(...await Promise.all(lot.map(travail)));
+  }
+  return resultats;
 }
 
 /**
@@ -148,7 +206,7 @@ const PEREMPTION = 7 * 24 * 3600 * 1000;   // une semaine
  * @returns {{kpis: Array<{cle,nom,unite,points:[{periode,valeur,extrait,date,accession}]}>,
  *            depots: number, rejetes: Array<string>}}
  */
-export async function decouvrir(ticker, cik, { trimestres = 8, minOccurrences = 3,
+export async function decouvrir(ticker, cik, { trimestres = 40, minOccurrences = 3,
   surAvancement = () => {}, forcer = false } = {}) {
   const cache = lireEtat(CLE_CACHE, {});
   const enCache = cache[ticker];
@@ -157,36 +215,52 @@ export async function decouvrir(ticker, cik, { trimestres = 8, minOccurrences = 
   const depots = await depotsResultats(cik, trimestres);
   const parLibelle = new Map();
 
-  for (const depot of depots) {
-    surAvancement(`${ticker}: reading the earnings release of ${depot.date}…`);
-    let texte;
+  const lus = await parPaquets(depots, 5, async (depot) => {
     try {
       const chemin = await communique(cik, depot);
-      if (!chemin) continue;
-      texte = enTextePlat(await relais(chemin, false));
-    } catch { continue; }
+      if (!chemin) return null;
+      return { depot, texte: enTextePlat(await relais(chemin, false)) };
+    } catch { return null; }
+  }, (fait, total) => surAvancement(`${ticker}: reading earnings releases… ${fait}/${total}`));
 
-    for (const [libelle, info] of scanner(texte)) {
-      if (!parLibelle.has(libelle)) parLibelle.set(libelle, { unite: info.unite, points: [] });
-      parLibelle.get(libelle).points.push({
-        periode: periodeDe(depot.date), valeur: info.valeur,
-        extrait: info.extrait, date: depot.date, accession: depot.accession,
+  for (const lu of lus) {
+    if (!lu) continue;
+    for (const [libelle, info] of scanner(lu.texte)) {
+      // La cle porte l'UNITE en plus du libelle. Sans ca, « operating
+      // revenues » vaut 867 000 000 dollars dans les communiques recents et
+      // 11,7 (un pourcentage de croissance) dans ceux de 2012 : les deux
+      // atterrissaient dans la meme serie, qui devenait un graphe plat a zero
+      // sur la premiere moitie et un CAGR de +265 %. Une serie ne melange
+      // jamais deux unites.
+      const cle = `${libelle}|${info.unite}`;
+      if (!parLibelle.has(cle)) {
+        parLibelle.set(cle, { libelle, unite: info.unite, points: [] });
+      }
+      parLibelle.get(cle).points.push({
+        periode: periodeDe(lu.depot.date), valeur: info.valeur,
+        extrait: info.extrait, date: lu.depot.date, accession: lu.depot.accession,
       });
     }
   }
 
   const kpis = [], rejetes = [];
-  for (const [libelle, d] of parLibelle) {
-    if (d.points.length < Math.min(minOccurrences, depots.length)) { rejetes.push(libelle); continue; }
+  for (const [cle, d] of parLibelle) {
+    if (d.points.length < Math.min(minOccurrences, depots.length)) { rejetes.push(d.libelle); continue; }
     d.points.sort((a, b) => a.periode.localeCompare(b.periode));
-    kpis.push({
-      cle: `kpi:${ticker}:${libelle}`, nom: libelle, ticker,
-      unite: d.unite, points: d.points,
-    });
+    // deux series de meme libelle mais d'unites differentes coexistent :
+    // le suffixe dit laquelle on regarde
+    const memeLibelleAilleurs = [...parLibelle.values()]
+      .some((o) => o.libelle === d.libelle && o.unite !== d.unite);
+    const nom = memeLibelleAilleurs && d.unite === "pct" ? `${d.libelle} (growth %)` : d.libelle;
+    kpis.push({ cle: `kpi:${ticker}:${cle}`, nom, ticker, unite: d.unite, points: d.points });
   }
   kpis.sort((a, b) => b.points.length - a.points.length || a.nom.localeCompare(b.nom));
 
-  const resultat = { kpis, depots: depots.length, rejetes };
+  const dates = depots.map((d) => d.date).sort();
+  const resultat = {
+    kpis, depots: depots.length, rejetes,
+    periode: dates.length ? `${dates[0]} → ${dates[dates.length - 1]}` : null,
+  };
   cache[ticker] = { quand: Date.now(), resultat };
   ecrireEtat(CLE_CACHE, cache);
   return resultat;
