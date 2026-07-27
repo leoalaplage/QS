@@ -240,6 +240,18 @@ export const BASE = {
     tags: [[G, "MinorityInterest"], [I, "NoncontrollingInterests"]] },
 
   // ---- Actions ----
+  actions_circulation: {
+    nom: "Shares outstanding", cat: "Shares",
+    unite: "shares", graph: "line",
+    // Photo a une date, et non moyenne sur la periode : c'est ce qu'il faut
+    // pour une capitalisation, qui se lit a un instant precis.
+    nonAdditif: true, ttmPonctuel: true,
+    //  On n'utilise SURTOUT PAS CommonStockSharesIssued : il compte les
+    //  actions auto-detenues. Chez Fair Isaac il vaut 3,73 fois le nombre
+    //  d'actions reellement en circulation.
+    tags: [[G, "CommonStockSharesOutstanding"],
+           ["dei", "EntityCommonStockSharesOutstanding"],
+           [I, "NumberOfSharesOutstanding"]] },
   shares_diluted: {
     nom: "Diluted share count", cat: "Shares",
     unite: "shares", graph: "line",

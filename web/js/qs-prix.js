@@ -187,10 +187,13 @@ export const METRIQUES_VALO = {
   },
   market_cap: {
     nom: "Market capitalisation", cat: "Valuation", unite: "money", graph: "line",
-    formule: "Share price x diluted share count",
-    note: "Diluted count, not basic: it is the one that matters to a shareholder.",
-    besoins: ["shares_diluted"],
-    calc: (cours, s) => croiser(cours, s.shares_diluted, (p, n) => p * n),
+    formule: "Share price x shares outstanding at the period end",
+    note: "Shares OUTSTANDING at the date, not the weighted average diluted count. A market "
+      + "capitalisation is read at an instant; a weighted average spans the period and lags "
+      + "buybacks by a few percent. Falls back to the diluted count where the outstanding "
+      + "figure is missing.",
+    besoins: ["actions_circulation", "shares_diluted"],
+    calc: (cours, s) => croiser(cours, s.actions, (p, n) => p * n),
   },
   per: {
     nom: "P/E ratio", cat: "Valuation", unite: "ratio", graph: "line",
@@ -202,15 +205,16 @@ export const METRIQUES_VALO = {
   p_fcf: {
     nom: "P/FCF ratio", cat: "Valuation", unite: "ratio", graph: "line",
     formule: "Market capitalisation / free cash flow",
-    besoins: ["shares_diluted", "fcf"],
-    calc: (cours, s) => croiser3(cours, s.shares_diluted, s.fcf,
+    note: "Undefined on a negative free cash flow.",
+    besoins: ["actions_circulation", "shares_diluted", "fcf"],
+    calc: (cours, s) => croiser3(cours, s.actions, s.fcf,
       (p, n, f) => (f > 0 ? (p * n) / f : null)),
   },
   fcf_yield: {
     nom: "FCF yield (%)", cat: "Valuation", unite: "pct", graph: "line",
     formule: "Free cash flow / market capitalisation x 100",
-    besoins: ["shares_diluted", "fcf"],
-    calc: (cours, s) => croiser3(cours, s.shares_diluted, s.fcf,
+    besoins: ["actions_circulation", "shares_diluted", "fcf"],
+    calc: (cours, s) => croiser3(cours, s.actions, s.fcf,
       (p, n, f) => (p * n ? (f / (p * n)) * 100 : null)),
   },
   ev_ebit: {
@@ -221,7 +225,7 @@ export const METRIQUES_VALO = {
       + "investments. Undefined on a negative operating income.",
     besoins: ["shares_diluted", "operating_income", "lt_debt", "dette_ct_totale",
       "dette_lt_courante", "emprunts_ct", "billets_tresorerie", "effets_payer",
-      "loyer_fin_ct", "loyer_fin_lt", "cash", "placements_ct"],
+      "loyer_fin_ct", "loyer_fin_lt", "cash", "placements_ct", "actions_circulation"],
     calc: (cours, s) => {
       const out = {};
       const v = (serie, k) => {
@@ -229,7 +233,7 @@ export const METRIQUES_VALO = {
         return x == null || !isFinite(x) ? 0 : x;
       };
       for (const k of Object.keys(cours)) {
-        const n = s.shares_diluted[k], ebit = s.operating_income[k];
+        const n = s.actions[k], ebit = s.operating_income[k];
         if (!n || !ebit || ebit <= 0) continue;
         // meme garde-fou anti-double-compte que le ROIC : l'agregat de dette
         // courante contient deja ses composants
@@ -319,7 +323,26 @@ export async function serieValo(cleMetrique, ticker, mode, construire,
   const actionsBrutes = s.shares_diluted || construire("shares_diluted");
   const facteurs = facteursSplit(actionsBrutes);
   if (s.shares_diluted) s.shares_diluted = appliquer(s.shares_diluted, facteurs, "multiplier");
+  if (s.actions_circulation) s.actions_circulation = appliquer(s.actions_circulation, facteurs, "multiplier");
   if (s.eps_diluted) s.eps_diluted = appliquer(s.eps_diluted, facteurs, "diviser");
+
+  /**
+   * Nombre d'actions retenu pour la capitalisation : celles en CIRCULATION a
+   * la date. On retombe sur la moyenne ponderee diluee quand la donnee
+   * manque, ou quand elle s'en ecarte de plus d'un quart -- signe que le tag
+   * ne couvre qu'une classe d'actions chez un emetteur multi-classes, auquel
+   * cas il sous-estime gravement la capitalisation.
+   */
+  if (def.besoins.includes("actions_circulation")) {
+    const circ = s.actions_circulation || {};
+    const dil = s.shares_diluted || {};
+    s.actions = {};
+    for (const k of new Set([...Object.keys(circ), ...Object.keys(dil)])) {
+      const c = circ[k], d = dil[k];
+      if (c != null && isFinite(c) && (d == null || (c / d > 0.75 && c / d < 1.25))) s.actions[k] = c;
+      else if (d != null && isFinite(d)) s.actions[k] = d;
+    }
+  }
 
   if (dateNatif) {
     // chaque serie comptable devient une fonction du temps, evaluee aux dates
