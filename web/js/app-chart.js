@@ -117,14 +117,17 @@ function dessinerSelections() {
   const familles = [...new Set(metriques.filter((m) => m.visible).map((m) => familleUnite(m.unite)))];
   const note = $("#note-axes");
   if (familles.length > 2) {
-    note.textContent = "Three different unit families selected ($, %, ratio…): only the first two "
-      + "get an axis. Drop one metric so every curve stays readable.";
+    note.textContent = "Three different unit families selected ($, %, ratio…): only two axes exist, "
+      + "so one group ends up on a scale that is not its own. Drop a metric to keep every curve readable.";
     note.className = "aide souci";
   } else if (familles.length === 2) {
-    note.textContent = "Two unit families: the first is scaled on the left axis, the second on the right.";
+    note.textContent = "Two axes: left and right. Metrics of the same unit but very different "
+      + "magnitudes — revenue and share price, both in dollars — are split too.";
     note.className = "aide";
   } else {
-    note.textContent = "";
+    note.textContent = "Metrics sharing a unit but differing by more than 50x in magnitude get "
+      + "their own axis, so a small series is never flattened against a large one.";
+    note.className = "aide";
   }
 }
 

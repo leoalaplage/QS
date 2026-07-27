@@ -210,13 +210,57 @@ export function tracer({
   };
 
   // -- repartition sur un ou deux axes ---------------------------------
-  const familles = [...new Set(visibles.map((s) => familleUnite(s.unite)))];
-  const axes = familles.slice(0, 2);
-  for (const s of visibles) s.axe = Math.max(0, axes.indexOf(familleUnite(s.unite)));
+  //
+  // La famille d'unite ne suffit pas : un chiffre d'affaires et un cours de
+  // bourse sont tous deux en dollars, mais l'un vaut 400 milliards et l'autre
+  // 300. Sur un axe commun, le cours est une ligne plate collee a zero. On
+  // separe donc aussi par ORDRE DE GRANDEUR, en coupant des qu'un rapport de
+  // 50 apparait entre deux series voisines d'une meme famille.
+  const ECART_ECHELLE = 50;
+  const ampleur = (s) => {
+    const v = s.points.map((p) => Math.abs(p.y)).filter((x) => x > 0).sort((a, b) => a - b);
+    return v.length ? v[Math.floor(v.length / 2)] : 1;   // mediane
+  };
+
+  const groupes = [];
+  const parFamille = new Map();
+  for (const s of visibles) {
+    const f = familleUnite(s.unite);
+    if (!parFamille.has(f)) parFamille.set(f, []);
+    parFamille.get(f).push(s);
+  }
+  for (const [, membres] of parFamille) {
+    membres.sort((a, b) => ampleur(a) - ampleur(b));
+    let courant = [membres[0]];
+    for (let i = 1; i < membres.length; i++) {
+      if (ampleur(membres[i]) / ampleur(membres[i - 1]) > ECART_ECHELLE) {
+        groupes.push(courant);
+        courant = [];
+      }
+      courant.push(membres[i]);
+    }
+    groupes.push(courant);
+  }
+  // Deux axes au maximum : au-dela plus rien n'est lisible. On garde les
+  // groupes les plus fournis, et les series restantes rejoignent le plus
+  // proche en ordre de grandeur.
+  groupes.sort((a, b) => b.length - a.length || ampleur(b[0]) - ampleur(a[0]));
+  const retenus = groupes.slice(0, 2);
+  for (const s of visibles) {
+    let axe = retenus.findIndex((g) => g.includes(s));
+    if (axe < 0) {
+      const a0 = ampleur(retenus[0][0]);
+      const a1 = retenus[1] ? ampleur(retenus[1][0]) : a0;
+      const m = ampleur(s);
+      axe = (!retenus[1] || Math.abs(Math.log10(m / a0)) <= Math.abs(Math.log10(m / a1))) ? 0 : 1;
+    }
+    s.axe = axe;
+  }
+  const nbAxes = retenus.length;
 
   // -- bornes ----------------------------------------------------------
   let xMinD = Infinity, xMaxD = -Infinity;
-  const bornesY = axes.map(() => ({ min: Infinity, max: -Infinity }));
+  const bornesY = Array.from({ length: nbAxes }, () => ({ min: Infinity, max: -Infinity }));
   for (const s of visibles) {
     for (const p of s.points) {
       xMinD = Math.min(xMinD, p.x); xMaxD = Math.max(xMaxD, p.x);
@@ -225,15 +269,26 @@ export function tracer({
     }
   }
 
-  const pasX = visibles.some((s) => s.points.length > 1)
-    ? Math.min(...visibles.filter((s) => s.points.length > 1)
-        .map((s) => Math.min(...s.points.slice(1).map((p, i) => p.x - s.points[i].x))))
-    : 1;
+  /**
+   * Ecart typique entre deux points d'une serie. On prend la MEDIANE et non
+   * le minimum : un trou dans l'historique ne doit pas retrecir les barres.
+   */
+  const pasDe = (s) => {
+    if (s.points.length < 2) return 1;
+    const ecarts = s.points.slice(1).map((p, i) => p.x - s.points[i].x).sort((a, b) => a - b);
+    return ecarts[Math.floor(ecarts.length / 2)] || 1;
+  };
+  // Chaque serie en barres a SA largeur. Sinon, superposer un cours
+  // hebdomadaire a un chiffre d'affaires trimestriel reduisait les barres a
+  // des traits d'un pixel : leur largeur suivait le pas du cours.
+  const pasX = Math.min(...visibles.map(pasDe));
 
   const barres = visibles.filter((s) => s.type === "bar");
   const empilees = visibles.filter((s) => s.type === "bar-stacked");
   const aireOuBarre = visibles.filter((s) => ["bar", "bar-stacked", "area"].includes(s.type));
-  const largeurGroupe = 0.68 * (pasX || 1);
+  const pasBarres = barres.length || empilees.length
+    ? Math.min(...[...barres, ...empilees].map(pasDe)) : (pasX || 1);
+  const largeurGroupe = 0.68 * (pasBarres || 1);
   if (barres.length || empilees.length) {
     xMinD -= largeurGroupe / 2;
     xMaxD += largeurGroupe / 2;
