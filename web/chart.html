@@ -20,8 +20,11 @@
   <h1>Historical chart as a PNG</h1>
   <p class="intro">
     Search companies by name or ticker, stack several metrics on one chart, and
-    read every point by hovering it. Everything is drawn from the XBRL data filed
-    with the SEC.
+    read every point by hovering it. Financial metrics come from the XBRL data
+    filed with the SEC; on top of those, QS reads each company&rsquo;s earnings
+    releases to pull the operating indicators no XBRL tag carries &mdash;
+    retention rate, room nights, gross bookings, take rate, remaining performance
+    obligations &mdash; and charts them like any other metric.
   </p>
 
   <section class="carte panneau">
@@ -53,9 +56,10 @@
     <!-- 2. Metrics & style -------------------------------------------- -->
     <div class="bloc">
       <div class="bloc-titre"><span class="etape">2</span>Metrics &amp; style</div>
-      <div class="ligne-actions" style="margin-top:0">
-        <select id="metrique" style="max-width:360px"></select>
-        <button type="button" id="btn-ajout-metrique">+ Add</button>
+      <div class="champ-recherche" style="max-width:520px">
+        <input type="text" id="recherche-metrique" autocomplete="off"
+               placeholder="Add a metric &mdash; type to filter, or click to browse&hellip;">
+        <div id="resultats-metrique" class="suggestions cache"></div>
       </div>
       <div id="table-metriques"></div>
       <p class="aide" id="note-axes"></p>
@@ -142,14 +146,6 @@
       <span class="taille" id="kpi-note"></span>
     </div>
     <div id="kpi-corps"></div>
-  </section>
-
-  <section id="kpi-ops" class="carte cache">
-    <div class="entete-resultat">
-      <h2>Operating KPIs (from earnings releases)</h2>
-      <span class="taille" id="kpi-ops-note"></span>
-    </div>
-    <div id="kpi-ops-corps"></div>
   </section>
 
   <section class="carte">

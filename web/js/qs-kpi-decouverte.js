@@ -28,6 +28,7 @@
 
 import { workerUrl } from "./qs-settings.js";
 import { lireEtat, ecrireEtat } from "./qs-etat.js";
+import { trier } from "./qs-kpi-tri.js";
 
 const MULT = { billion: 1e9, million: 1e6, trillion: 1e12, thousand: 1e3 };
 
@@ -68,9 +69,20 @@ const NON_LIBELLES = [
 
 const estLibelle = (l) => l.length >= 4 && !NON_LIBELLES.some((re) => re.test(l));
 
+//  Balises de mise en forme qui peuvent tomber AU MILIEU d'un mot. Les
+//  editeurs de communiques en sement partout : Mastercard ecrit
+//  « gro<span style=...>wth</span> ». En les remplacant par une espace
+//  comme les autres, on obtenait « Cross-border volume gro wth », une
+//  serie fantome de 5 trimestres a cote de la vraie. Elles disparaissent
+//  donc sans rien laisser ; les balises de bloc, elles, separent bien
+//  deux mots et gardent leur espace.
+const BALISES_INLINE = /<\/?(?:span|b|i|em|strong|font|sup|sub|a|u|small|mark|ins|del)\b[^>]*>/gi;
+
 /** HTML -> texte plat. */
 export function enTextePlat(html) {
-  let t = html.replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ");
+  let t = html.replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ")
+    .replace(BALISES_INLINE, "")
+    .replace(/<[^>]+>/g, " ");
   const ent = {
     "&#8220;": '"', "&#8221;": '"', "&#8217;": "'", "&#8216;": "'", "&quot;": '"',
     "&amp;": "&", "&nbsp;": " ", "&#160;": " ", "&#8212;": "-", "&#8211;": "-",
@@ -80,6 +92,21 @@ export function enTextePlat(html) {
   t = t.replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
   return t.replace(/\s+/g, " ").trim();
 }
+
+//  Marqueurs de PREVISION. Un communique de resultats ne contient pas que
+//  du realise : il se termine presque toujours par une section de
+//  perspectives, redigee exactement comme le reste. Uber ecrit « Outlook
+//  for Q2 2026 [...] we anticipate: Gross Bookings of $56.25 billion » --
+//  une phrase que les motifs generiques lisent aussi bien qu'une autre, et
+//  qui faisait entrer une prevision dans la serie des chiffres publies.
+//
+//  On regarde donc ce qui precede immediatement chaque valeur. Si la
+//  fenetre porte un de ces marqueurs, la valeur est ignoree. Le risque est
+//  de perdre un chiffre reel cite juste apres une phrase de perspective ;
+//  c'est le sens du compromis retenu ici depuis le debut : rater une
+//  valeur est acceptable, en inventer une ne l'est pas.
+const PREVISION = /\b(?:outlook|guidance|we anticipate|we expect|we forecast|we project|we are (?:raising|lowering|reiterating)|anticipates|expects to|is expected to|projected to|targets?\b|full[\s-]year 20\d\d (?:outlook|guidance))/i;
+const FENETRE_PREVISION = 200;
 
 /** Tous les couples (libelle, valeur) numeriques d'un communique. */
 export function scanner(texte) {
@@ -97,6 +124,9 @@ export function scanner(texte) {
       // les formulations inversees commencent en minuscule : on normalise
       if (inverse) libelle = libelle.charAt(0).toUpperCase() + libelle.slice(1);
       if (!estLibelle(libelle) || trouves.has(libelle)) continue;
+      //  valeur annoncee, pas constatee : elle n'a rien a faire dans un
+      //  historique
+      if (PREVISION.test(texte.slice(Math.max(0, m.index - FENETRE_PREVISION), m.index))) continue;
       let v = parseFloat(brutVal.replace(/,/g, ""));
       if (!isFinite(v)) continue;
       if (m[3]) v *= MULT[m[3].toLowerCase()] || 1;
@@ -118,10 +148,25 @@ async function relais(chemin, json = true) {
   return json ? r.json() : r.text();
 }
 
-/** Extrait les 8-K de resultats d'un bloc de depots. */
+/**
+ * Extrait les depots de resultats d'un bloc.
+ *
+ * Deux formes selon le statut de l'emetteur. Une societe americaine
+ * depose un 8-K et signale ses resultats par l'item 2.02. Un emetteur
+ * prive etranger -- Shopify, cote a New York mais canadien -- n'a pas
+ * acces au 8-K : il depose un 6-K, qui ne porte AUCUN item. Filtrer sur
+ * l'item 2.02 revenait a ne rien trouver chez eux : Shopify sortait zero
+ * indicateur, non par pauvrete du communique mais parce qu'on ne le
+ * cherchait pas. Le 6-K servant a tout et n'importe quoi, c'est la
+ * recurrence, en aval, qui fait le tri.
+ */
 function moissonner(bloc, out, nb) {
   for (let i = 0; i < (bloc.form || []).length && out.length < nb; i++) {
-    if (bloc.form[i] !== "8-K" || !String(bloc.items[i] || "").includes("2.02")) continue;
+    const forme = bloc.form[i];
+    const resultats = forme === "8-K"
+      ? String(bloc.items?.[i] || "").includes("2.02")
+      : forme === "6-K";
+    if (!resultats) continue;
     out.push({
       accession: bloc.accessionNumber[i].replace(/-/g, ""),
       date: bloc.filingDate[i],
@@ -184,19 +229,40 @@ async function communique(cik, depot) {
 
 /**
  * Periode couverte par un communique, deduite de sa date de depot.
- * Une societe publie ses resultats 3 a 6 semaines apres la cloture : on
- * recule de 40 jours, ce qui retombe sur le bon trimestre civil.
+ *
+ * On recule d'un delai typique de publication et on lit le trimestre
+ * civil obtenu. Le delai retenu est de 55 jours, et ce chiffre n'est pas
+ * arbitraire : mesure sur 89 communiques reels (ServiceNow, Booking,
+ * Airbnb, Visa, Netflix, Uber), le recul de 40 jours provoquait 7
+ * COLLISIONS -- deux communiques differents tombant sur la meme periode,
+ * le second effacant le premier.
+ *
+ * Le cas typique est le communique du quatrieme trimestre. Booking
+ * publie le sien le 20 fevrier : moins 40 jours donne le 11 janvier,
+ * soit le premier trimestre de l'annee suivante, ou il ecrasait le vrai
+ * communique de mai. Le point de fin d'annee disparaissait purement et
+ * simplement, et celui du premier trimestre se retrouvait fausse.
+ *
+ * A 55 jours, aucune collision sur le meme echantillon. Un depot tres
+ * tardif (plus de deux mois apres la cloture) resterait mal classe, mais
+ * ce cas ne s'est presente sur aucun des 89 communiques.
  */
+const DELAI_PUBLICATION = 55;
+
 function periodeDe(dateDepot) {
   const d = new Date(`${dateDepot}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - 40);
+  d.setUTCDate(d.getUTCDate() - DELAI_PUBLICATION);
   return `${d.getUTCFullYear()}Q${Math.floor(d.getUTCMonth() / 3) + 1}`;
 }
 
 // ---------------------------------------------------------------------
 // Decouverte
 // ---------------------------------------------------------------------
-const CLE_CACHE = "kpi.decouverte";
+//  Le suffixe de version invalide les resultats mis en cache quand la
+//  facon de les produire change. Sans lui, un navigateur ayant deja
+//  explore une societe continuerait a servir l'ancienne liste, non triee
+//  et avec les periodes mal datees, pendant une semaine.
+const CLE_CACHE = "kpi.decouverte.v2";
 const PEREMPTION = 7 * 24 * 3600 * 1000;   // une semaine
 
 /**
@@ -244,8 +310,9 @@ export async function decouvrir(ticker, cik, { trimestres = 40, minOccurrences =
   }
 
   const kpis = [], rejetes = [];
+  const seuil = Math.min(minOccurrences, depots.length);
   for (const [cle, d] of parLibelle) {
-    if (d.points.length < Math.min(minOccurrences, depots.length)) { rejetes.push(d.libelle); continue; }
+    if (d.points.length < seuil) { rejetes.push(d.libelle); continue; }
     d.points.sort((a, b) => a.periode.localeCompare(b.periode));
     // deux series de meme libelle mais d'unites differentes coexistent :
     // le suffixe dit laquelle on regarde
@@ -254,11 +321,17 @@ export async function decouvrir(ticker, cik, { trimestres = 40, minOccurrences =
     const nom = memeLibelleAilleurs && d.unite === "pct" ? `${d.libelle} (growth %)` : d.libelle;
     kpis.push({ cle: `kpi:${ticker}:${cle}`, nom, ticker, unite: d.unite, points: d.points });
   }
-  kpis.sort((a, b) => b.points.length - a.points.length || a.nom.localeCompare(b.nom));
+  //  Passe de tri : fusion des variantes d'ecriture, mise a l'ecart des
+  //  fragments de phrase, separation de ce qui n'est qu'une ligne de
+  //  compte deja disponible en XBRL. `kpis` reste la liste complete des
+  //  series exploitables, dans l'ordre ou on veut les proposer.
+  const tri = trier(kpis, { minPoints: seuil });
 
   const dates = depots.map((d) => d.date).sort();
   const resultat = {
-    kpis, depots: depots.length, rejetes,
+    kpis: [...tri.ops, ...tri.finance],
+    ops: tri.ops, finance: tri.finance, ecartes: tri.bruit, tri: tri.stats,
+    depots: depots.length, rejetes,
     periode: dates.length ? `${dates[0]} → ${dates[dates.length - 1]}` : null,
   };
   cache[ticker] = { quand: Date.now(), resultat };

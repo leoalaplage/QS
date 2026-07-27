@@ -48,25 +48,129 @@ function enregistrer() {
 // ---------------------------------------------------------------------
 // Menu des metriques
 // ---------------------------------------------------------------------
-const selMetrique = $("#metrique");
-for (const [categorie, liste] of metriquesParCategorie()) {
-  if (!liste.length) continue;
-  const groupe = el("optgroup", { label: categorie });
-  for (const m of liste.sort((a, b) => a.nom.localeCompare(b.nom, "en"))) {
-    groupe.appendChild(el("option", { value: m.cle, texte: m.nom }));
+//  Le menu deroulant a ete remplace par un champ de recherche. Avec 58
+//  metriques de base, les ratios de valorisation et les indicateurs
+//  publies par chaque societe selectionnee, la liste depassait la
+//  centaine d'entrees : la parcourir a la molette pour trouver « Take
+//  Rate » n'avait plus de sens. Le champ reprend le comportement de la
+//  recherche de societes, juste au-dessus -- meme apparence, meme clavier.
+let catalogue = [];
+//  `lireEtat` fusionne le defaut par etalement d'objet : lui passer `false`
+//  renvoyait `{}`, un objet donc vrai, et les lignes comptables
+//  s'affichaient alors qu'elles devaient rester de cote. L'etat se range
+//  dans un objet, comme les autres.
+let montrerComptables = lireEtat("chart.kpiComptables", { actif: false }).actif === true;
+
+/**
+ * Reconstruit la liste plate des metriques proposables.
+ *
+ * Appele a chaque fois que la selection de societes change, parce que les
+ * indicateurs publies dependent des societes retenues.
+ */
+function construireCatalogue() {
+  catalogue = [];
+  for (const [categorie, liste] of metriquesParCategorie()) {
+    for (const m of [...liste].sort((a, b) => a.nom.localeCompare(b.nom, "en"))) {
+      catalogue.push({ cle: m.cle, nom: m.nom, groupe: categorie });
+    }
   }
-  selMetrique.appendChild(groupe);
-}
-{
   // Les metriques de valorisation ne viennent pas des depots : elles ont
   // besoin d'un cours, donc d'une source exterieure. Groupe a part.
-  const groupe = el("optgroup", { label: "Valuation (needs share price)" });
   for (const [cle, d] of Object.entries(METRIQUES_VALO)) {
-    groupe.appendChild(el("option", { value: `valo:${cle}`, texte: d.nom }));
+    catalogue.push({ cle: `valo:${cle}`, nom: d.nom, groupe: "Valuation (needs share price)" });
   }
-  selMetrique.appendChild(groupe);
+  for (const s of societes) {
+    const d = dejaDecouvert(s.ticker);
+    if (!d) continue;
+    for (const k of d.ops || []) {
+      catalogue.push({
+        cle: k.cle, nom: k.nom, groupe: `Reported by ${s.ticker}`,
+        vedette: k.vedette, detail: `${k.points.length}q`,
+      });
+    }
+    //  Les lignes de compte relues dans le communique ne sont proposees que
+    //  sur demande : elles existent deja plus haut, tirees du XBRL, avec un
+    //  historique bien plus long.
+    if (montrerComptables) {
+      for (const k of d.finance || []) {
+        catalogue.push({
+          cle: k.cle, nom: k.nom, groupe: `${s.ticker} — accounting lines (already above)`,
+          detail: `${k.points.length}q`,
+        });
+      }
+    }
+  }
 }
-selMetrique.value = "revenue";
+
+const champMetrique = $("#recherche-metrique");
+const listeMetrique = $("#resultats-metrique");
+const fermerMetriques = () => { listeMetrique.classList.add("cache"); vider(listeMetrique); };
+
+/** Score de correspondance : un debut de mot vaut mieux qu'un fragment. */
+function pertinence(nom, q) {
+  const n = nom.toLowerCase();
+  if (n === q) return 0;
+  if (n.startsWith(q)) return 1;
+  if (new RegExp(`\\b${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(n)) return 2;
+  return n.includes(q) ? 3 : -1;
+}
+
+function dessinerListeMetriques() {
+  const q = champMetrique.value.trim().toLowerCase();
+  const deja = new Set(metriques.map((m) => m.cle));
+  let liste = catalogue.filter((m) => !deja.has(m.cle));
+  if (q) {
+    liste = liste
+      .map((m) => ({ m, s: pertinence(m.nom, q) }))
+      .filter((x) => x.s >= 0)
+      .sort((a, b) => a.s - b.s)
+      .map((x) => x.m);
+  }
+
+  vider(listeMetrique);
+  if (!liste.length) {
+    listeMetrique.appendChild(el("div", { classe: "vide", texte: q ? `No metric matches “${champMetrique.value.trim()}”.` : "Every metric is already on the chart." }));
+    listeMetrique.classList.remove("cache");
+    return;
+  }
+
+  //  Sans filtre on garde les groupes, qui servent de sommaire ; avec un
+  //  filtre on montre le classement par pertinence, sans le decouper.
+  let dernierGroupe = null;
+  for (const m of liste.slice(0, q ? 40 : 400)) {
+    if (!q && m.groupe !== dernierGroupe) {
+      dernierGroupe = m.groupe;
+      listeMetrique.appendChild(el("div", { classe: "groupe", texte: m.groupe }));
+    }
+    const b = el("button", { type: "button" });
+    if (m.vedette) b.appendChild(el("span", { classe: "etoile", texte: "★" }));
+    b.appendChild(el("span", { classe: "tk", texte: m.nom }));
+    if (q) b.appendChild(el("span", { classe: "nm", texte: m.groupe }));
+    else if (m.detail) b.appendChild(el("span", { classe: "nm", texte: m.detail }));
+    b.addEventListener("click", () => {
+      ajouterMetrique(m.cle);
+      champMetrique.value = "";
+      fermerMetriques();
+    });
+    listeMetrique.appendChild(b);
+  }
+  listeMetrique.classList.remove("cache");
+}
+
+champMetrique.addEventListener("input", dessinerListeMetriques);
+champMetrique.addEventListener("focus", dessinerListeMetriques);
+champMetrique.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { champMetrique.blur(); fermerMetriques(); }
+  if (e.key === "Enter") {
+    const premier = listeMetrique.querySelector("button");
+    if (premier) premier.click();
+  }
+});
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("#recherche-metrique") && !e.target.closest("#resultats-metrique")) {
+    fermerMetriques();
+  }
+});
 
 // ---------------------------------------------------------------------
 // Jetons : societes et metriques, masquables sans etre supprimes
@@ -111,6 +215,9 @@ function dessinerSelections() {
   }
 
   dessinerTableMetriques();
+  //  Les indicateurs proposables dependent des societes retenues : le
+  //  catalogue se refait a chaque changement de selection.
+  construireCatalogue();
   if (typeof dessinerZoneDecouverte === "function") dessinerZoneDecouverte();
 
   // Au-dela de deux familles d'unites, plus rien ne peut etre gradue honnetement.
@@ -277,10 +384,6 @@ function ajouterMetrique(cle) {
   rafraichir();
 }
 
-// Choisir une metrique dans le menu l'ajoute directement ; le bouton reste
-// pour la remettre apres l'avoir retiree sans changer de selection.
-selMetrique.addEventListener("change", () => ajouterMetrique(selMetrique.value));
-$("#btn-ajout-metrique").addEventListener("click", () => ajouterMetrique(selMetrique.value));
 
 // ---------------------------------------------------------------------
 // Suggestions et recherche
@@ -944,9 +1047,10 @@ function dessinerZoneDecouverte() {
   const ligne = el("div", { classe: "ligne-actions", style: "margin-top:10px" });
   for (const s of societes) {
     const deja = dejaDecouvert(s.ticker);
+    const n = deja ? (deja.ops || []).length : 0;
     const b = el("button", {
       type: "button",
-      texte: deja ? `${s.ticker}: ${deja.kpis.length} reported KPIs` : `Find ${s.ticker} reported KPIs`,
+      texte: deja ? `${s.ticker}: ${n} operating KPI${n === 1 ? "" : "s"}` : `Find ${s.ticker} reported KPIs`,
       title: "Read the last earnings releases and pull out the indicators the company itself publishes",
     });
     b.addEventListener("click", () => lancerDecouverte(s, b));
@@ -954,14 +1058,53 @@ function dessinerZoneDecouverte() {
   }
   zone.appendChild(ligne);
 
-  const tousKpis = societes.flatMap((s) => (dejaDecouvert(s.ticker)?.kpis) || []);
-  if (tousKpis.length) {
-    zone.appendChild(el("p", {
-      classe: "aide",
-      texte: "Reported KPIs are listed at the bottom of the metric menu, one group per company. "
-        + "They come from the text of the quarterly earnings release, so they only exist quarterly.",
+  const explores = societes.map((s) => [s, dejaDecouvert(s.ticker)]).filter(([, d]) => d);
+  if (!explores.length) return;
+
+  //  Rendre compte du tri, pas seulement de son resultat. Le nombre de
+  //  series ecartees et de doublons comptables mis de cote est la seule
+  //  facon de voir si le filtre est trop large ou trop etroit.
+  const bilan = el("div", { classe: "bilan-kpi" });
+  for (const [s, d] of explores) {
+    const t = d.tri || {};
+    const l = el("div", { classe: "bilan-ligne" });
+    l.appendChild(el("b", { texte: s.ticker }));
+    l.appendChild(el("span", {
+      texte: `${(d.ops || []).length} operating · ${(d.finance || []).length} accounting `
+        + `· ${t.bruit || 0} discarded`
+        + (t.fusions ? ` · ${t.fusions} wording variant${t.fusions === 1 ? "" : "s"} merged` : "")
+        + `  —  read from ${d.depots} earnings releases (${d.periode || "?"})`,
     }));
+    bilan.appendChild(l);
   }
+  zone.appendChild(bilan);
+
+  const totalFin = explores.reduce((n, [, d]) => n + (d.finance || []).length, 0);
+  if (totalFin) {
+    const cases = el("div", { classe: "cases", style: "margin-top:8px" });
+    const lab = el("label");
+    const c = el("input", { type: "checkbox" });
+    c.checked = montrerComptables;
+    c.addEventListener("change", () => {
+      montrerComptables = c.checked;
+      ecrireEtat("chart.kpiComptables", { actif: montrerComptables });
+      construireCatalogue();
+    });
+    lab.appendChild(c);
+    lab.appendChild(el("span", {
+      texte: `Also offer the ${totalFin} accounting lines re-read from the releases`
+        + " (revenue, net income, margins — already available above, with far more history)",
+    }));
+    cases.appendChild(lab);
+    zone.appendChild(cases);
+  }
+
+  zone.appendChild(el("p", {
+    classe: "aide",
+    texte: "Operating KPIs are what the company publishes and no XBRL tag carries — retention, "
+      + "bookings, take rate, remaining performance obligations. They are read from the text of the "
+      + "quarterly release, so they only exist quarterly, and each value keeps the sentence it came from.",
+  }));
 }
 
 async function lancerDecouverte(s, bouton) {
@@ -975,18 +1118,26 @@ async function lancerDecouverte(s, bouton) {
     });
     act.cacher();
     vider(messages);
-    if (!res.kpis.length) {
+    const t = res.tri || {};
+    if (!res.ops.length && !res.finance.length) {
       message(messages, "info",
         `No recurring indicator found for ${s.ticker} over its last ${res.depots} earnings releases. `
-        + "Either the company files no 8-K earnings release (common for foreign filers), or it "
-        + "words its figures in a way the generic patterns do not catch.");
+        + "Either the company publishes no release in sentence form — several put their figures in "
+        + "tables only — or it words them in a way the generic patterns do not catch.");
+    } else if (!res.ops.length) {
+      message(messages, "info",
+        `${s.ticker}: nothing operating found. The ${res.finance.length} recurring figures in its `
+        + "releases are all accounting lines already available above, from XBRL, with more history.");
     } else {
       message(messages, "ok",
-        `${s.ticker}: ${res.kpis.length} recurring indicators found across ${res.depots} `
-        + `earnings releases (${res.periode || "?"}), ${res.rejetes.length} one-off figures discarded. `
-        + "They are now at the bottom of the metric menu.");
+        `${s.ticker}: ${res.ops.length} operating KPI${res.ops.length === 1 ? "" : "s"} kept from `
+        + `${res.depots} earnings releases (${res.periode || "?"}). Set aside: ${res.finance.length} `
+        + `accounting lines already available from XBRL, ${t.bruit || 0} malformed labels, `
+        + `${res.rejetes.length} one-off figures`
+        + (t.fusions ? `, and ${t.fusions} wording variant${t.fusions === 1 ? "" : "s"} merged into an existing series` : "")
+        + ". Type in the metric field above to add them.");
     }
-    majMenuKpis();
+    construireCatalogue();
     dessinerZoneDecouverte();
   } catch (e) {
     act.cacher();
@@ -997,24 +1148,5 @@ async function lancerDecouverte(s, bouton) {
   }
 }
 
-/** Ajoute les KPI decouverts au menu des metriques, groupes par societe. */
-function majMenuKpis() {
-  for (const g of [...selMetrique.querySelectorAll("optgroup")]) {
-    if (g.label.startsWith("Reported KPIs")) g.remove();
-  }
-  for (const s of societes) {
-    const d = dejaDecouvert(s.ticker);
-    if (!d || !d.kpis.length) continue;
-    const groupe = el("optgroup", { label: `Reported KPIs — ${s.ticker}` });
-    for (const k of d.kpis) {
-      groupe.appendChild(el("option", {
-        value: k.cle,
-        texte: `${k.nom} (${k.points.length}q)`,
-      }));
-    }
-    selMetrique.appendChild(groupe);
-  }
-}
-
-majMenuKpis();
+construireCatalogue();
 dessinerZoneDecouverte();
