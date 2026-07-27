@@ -52,7 +52,9 @@ export const BASE = {
            [G, "InterestAndDebtExpense"], [I, "FinanceCosts"], [I, "InterestExpense"]] },
   sbc: {
     nom: "Stock-based compensation (SBC)", cat: "Income statement",
-    unite: "money", graph: "bar",
+    // une charge se lit en valeur absolue : certains emetteurs la taguent
+    // negativement dans le tableau de flux
+    unite: "money", graph: "bar", abs: true,
     tags: [[G, "ShareBasedCompensation"],
            [G, "AllocatedShareBasedCompensationExpense"],
            [I, "ExpenseFromSharebasedPaymentTransactionsWithEmployees"],
@@ -184,6 +186,59 @@ export const BASE = {
     unite: "money", graph: "bar",
     tags: [[G, "RetainedEarningsAccumulatedDeficit"], [I, "RetainedEarnings"]] },
 
+  // ---- Briques de bilan (non listees au menu, utilisees par les ratios) ----
+  //  Chaque brique regroupe des tags EQUIVALENTS : le premier disponible
+  //  gagne, on ne les additionne jamais entre eux. Additionner
+  //  « DebtCurrent » et « LongTermDebtCurrent » comptait deux fois la meme
+  //  dette chez la plupart des emetteurs.
+  dette_ct_totale: {
+    nom: "Current debt (aggregate)", cat: "Balance sheet",
+    unite: "money", graph: "line", menu: false,
+    tags: [[G, "DebtCurrent"]] },
+  dette_lt_courante: {
+    nom: "Current portion of long-term debt", cat: "Balance sheet",
+    unite: "money", graph: "line", menu: false,
+    tags: [[G, "LongTermDebtCurrent"]] },
+  emprunts_ct: {
+    nom: "Short-term borrowings", cat: "Balance sheet",
+    unite: "money", graph: "line", menu: false,
+    tags: [[G, "ShortTermBorrowings"], [G, "OtherShortTermBorrowings"]] },
+  billets_tresorerie: {
+    nom: "Commercial paper", cat: "Balance sheet",
+    unite: "money", graph: "line", menu: false,
+    tags: [[G, "CommercialPaper"]] },
+  effets_payer: {
+    nom: "Notes payable", cat: "Balance sheet",
+    unite: "money", graph: "line", menu: false,
+    tags: [[G, "NotesPayableCurrent"]] },
+  loyer_fin_ct: {
+    nom: "Finance lease liability, current", cat: "Balance sheet",
+    unite: "money", graph: "line", menu: false,
+    tags: [[G, "FinanceLeaseLiabilityCurrent"]] },
+  loyer_fin_lt: {
+    nom: "Finance lease liability, non-current", cat: "Balance sheet",
+    unite: "money", graph: "line", menu: false,
+    tags: [[G, "FinanceLeaseLiabilityNoncurrent"]] },
+  placements_ct: {
+    nom: "Short-term investments", cat: "Balance sheet",
+    unite: "money", graph: "line", menu: false,
+    tags: [[G, "ShortTermInvestments"], [G, "MarketableSecuritiesCurrent"],
+           [G, "AvailableForSaleSecuritiesDebtSecuritiesCurrent"],
+           [I, "OtherCurrentFinancialAssets"]] },
+  capitaux_avec_mi: {
+    nom: "Equity including non-controlling interests", cat: "Balance sheet",
+    unite: "money", graph: "line", menu: false,
+    tags: [[G, "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"],
+           [I, "Equity"]] },
+  actions_preferentielles: {
+    nom: "Preferred stock", cat: "Balance sheet",
+    unite: "money", graph: "line", menu: false,
+    tags: [[G, "PreferredStockValue"]] },
+  interets_minoritaires: {
+    nom: "Non-controlling interests", cat: "Balance sheet",
+    unite: "money", graph: "line", menu: false,
+    tags: [[G, "MinorityInterest"], [I, "NoncontrollingInterests"]] },
+
   // ---- Actions ----
   shares_diluted: {
     nom: "Diluted share count", cat: "Shares",
@@ -223,63 +278,124 @@ function detteCapitaux(s) {
   return r;
 }
 
+// =====================================================================
+//  Briques communes aux ratios de rentabilite
+// =====================================================================
+/** Valeur d'une serie a une periode, 0 si absente. Pour les postes optionnels. */
+const ou0 = (serie, k) => {
+  const v = serie ? serie[k] : null;
+  return v === null || v === undefined || !isFinite(v) ? 0 : v;
+};
+
+/** Valeur d'une serie, null si absente. Pour les postes obligatoires. */
+const ouNull = (serie, k) => {
+  const v = serie ? serie[k] : null;
+  return v === null || v === undefined || !isFinite(v) ? null : v;
+};
+
 /**
- * NOPAT : resultat operationnel apres impot, au taux EFFECTIF de la societe.
- * Apple paie 15,6 % et non 21 % : forcer le taux legal sous-estimait le
- * NOPAT de 7 %. On ne retombe sur 21 % que si l'impot ou le resultat avant
- * impot manquent, ou si le taux calcule est aberrant (credit d'impot, perte).
+ * Cle de la periode situee un AN plus tot : la periode precedente en annuel,
+ * quatre trimestres en arriere sinon. Sert aux moyennes de bilan.
  */
-function nopat(s, a) {
-  const impot = s.income_tax ? s.income_tax[a] : null;
-  const avant = s.pretax_income ? s.pretax_income[a] : null;
-  let taux = 0.21;
-  if (impot != null && avant) {
-    const t = impot / avant;
-    if (t >= 0 && t <= 0.5) taux = t;
+function cleAnPrecedent(k) {
+  const m = String(k).match(/^(\d{4})Q([1-4])$/);
+  if (m) {
+    const an = Number(m[1]), q = Number(m[2]);
+    return `${an - 1}Q${q}`;
   }
-  return s.operating_income[a] * (1 - taux);
+  const an = Number(k);
+  return isFinite(an) ? String(an - 1) : null;
 }
 
 /**
- * ROIC, vue FINANCEMENT : capital apporte par les actionnaires et les
- * creanciers, net de la tresorerie.
+ * Un denominateur de rentabilite a-t-il encore un sens ?
  *
- * Attention a la lecture : chez une societe qui rachete massivement ses
- * actions, les capitaux propres fondent et ce ratio s'envole. Apple sort a
- * 87 % sur cet exercice, contre 35 % environ chez la plupart des sites --
- * les deux chiffres sont exacts, ils ne mesurent pas le meme capital.
- * Comparer deux societes sur cette base n'a de sens que si elles ont une
- * politique de rachat comparable.
+ * Une societe qui a rachete plus que ses fonds propres comptables affiche un
+ * ROE de 22 574 % (Booking 2023) ou un ROIC de 1 143 % (Veeva 2013). Ces
+ * nombres sont arithmetiquement exacts et economiquement vides : ils
+ * mesurent la petitesse du denominateur, pas la rentabilite.
+ *
+ * Le critere retenu est economique et non un plafond d'affichage : un socle
+ * inferieur a 1 % du bilan n'est plus une base de capital.
  */
-function roic(s) {
-  const r = {};
-  for (const a of Object.keys(s.operating_income)) {
-    if (!(a in s.equity)) continue;
-    const ic = s.equity[a] + (s.lt_debt[a] || 0) + (s.short_debt[a] || 0) - (s.cash[a] || 0);
-    if (ic > 0) r[a] = (100.0 * nopat(s, a)) / ic;
-  }
-  return r;
+const socleUtilisable = (socle, actifs, k) => {
+  if (socle === null || socle <= 0) return false;
+  const actif = ouNull(actifs, k);
+  return actif === null || actif <= 0 ? true : socle >= actif * 0.01;
+};
+
+/**
+ * Moyenne d'un poste de bilan sur un an. Un ratio qui divise un FLUX (gagne
+ * tout au long de la periode) par un STOCK (photo a un instant) surestime le
+ * rendement des que le bilan grossit. La moyenne des deux bornes corrige
+ * l'essentiel du biais ; a defaut d'anteriorite on garde la valeur courante.
+ */
+function moyenneBilan(valeurCourante, serie, k) {
+  const precedent = ouNull(serie, cleAnPrecedent(k));
+  return precedent === null ? valeurCourante : (valeurCourante + precedent) / 2;
 }
 
 /**
- * ROIC, vue OPERATIONNELLE : capital reellement immobilise dans l'activite,
- * soit l'actif total moins la tresorerie et moins les dettes d'exploitation
- * qui ne portent pas d'interet (fournisseurs, charges a payer).
+ * Dette PORTANT INTERET, sans double compte.
  *
- * C'est la definition la plus repandue et la seule qui reste comparable
- * entre societes : elle ne depend pas de la structure du bilan ni de
- * l'historique de rachats d'actions.
+ * Le piege : « DebtCurrent » est deja l'agregat de la part courante de la
+ * dette long terme, des billets de tresorerie et des emprunts court terme.
+ * L'additionner a ses composants comptait la meme dette deux fois. On prend
+ * donc l'agregat quand il existe, ses composants sinon. Meme logique pour
+ * les emprunts court terme, dont les billets de tresorerie et les effets a
+ * payer sont des sous-ensembles chez la plupart des emetteurs.
  */
-function roicOperationnel(s) {
-  const r = {};
-  for (const a of Object.keys(s.operating_income)) {
-    const actif = s.assets[a], courant = s.cur_liab[a];
-    if (actif == null || courant == null) continue;
-    const sansInterets = courant - (s.short_debt[a] || 0);
-    const ic = actif - (s.cash[a] || 0) - sansInterets;
-    if (ic > 0) r[a] = (100.0 * nopat(s, a)) / ic;
+function detteFinanciere(s, k) {
+  const nonCourante = ouNull(s.lt_debt, k) ?? 0;
+
+  let courante = ouNull(s.dette_ct_totale, k);
+  if (courante === null) {
+    const emprunts = ouNull(s.emprunts_ct, k)
+      ?? (ou0(s.billets_tresorerie, k) + ou0(s.effets_payer, k));
+    courante = ou0(s.dette_lt_courante, k) + emprunts;
   }
-  return r;
+
+  const locations = ou0(s.loyer_fin_ct, k) + ou0(s.loyer_fin_lt, k);
+  return nonCourante + courante + locations;
+}
+
+/** Tresorerie et quasi-tresorerie : liquidites + placements a court terme. */
+const tresorerieTotale = (s, k) => ou0(s.cash, k) + ou0(s.placements_ct, k);
+
+/**
+ * Capital investi, et le detail qui a servi a le calculer.
+ * Renvoie null si un poste obligatoire manque ou si le capital est negatif.
+ */
+function capitalInvesti(s, k) {
+  // Les capitaux propres part du groupe d'abord ; a defaut la variante qui
+  // INCLUT deja les minoritaires -- auquel cas on ne les rajoute pas.
+  let capitaux = ouNull(s.equity, k);
+  let minoritairesDejaDedans = false;
+  if (capitaux === null) {
+    capitaux = ouNull(s.capitaux_avec_mi, k);
+    minoritairesDejaDedans = true;
+  }
+  if (capitaux === null) return null;
+
+  const ic = capitaux
+    + detteFinanciere(s, k)
+    + ou0(s.actions_preferentielles, k)
+    + (minoritairesDejaDedans ? 0 : ou0(s.interets_minoritaires, k))
+    - tresorerieTotale(s, k);
+
+  return ic > 0 ? ic : null;
+}
+
+const TAUX_NORMALISE = 0.21;
+
+/** Capital investi de toutes les periodes disponibles, pour les moyennes. */
+function serieCapital(s) {
+  const out = {};
+  for (const k of Object.keys(s.equity || s.capitaux_avec_mi || {})) {
+    const ic = capitalInvesti(s, k);
+    if (ic !== null) out[k] = ic;
+  }
+  return out;
 }
 
 export const DERIVE = {
@@ -368,35 +484,150 @@ export const DERIVE = {
     calc: (s) => ratioPct(s.rd, s.revenue) },
   roe: {
     nom: "ROE (%)", cat: "Margins & returns",
-    formule: "Net income / shareholders' equity × 100",
-    note: "Equity is a balance-sheet item: taken at period end, never averaged.",
-    unite: "pct", graph: "line", besoins: ["net_income", "equity"],
-    calc: (s) => ratioPct(s.net_income, s.equity) },
+    formule: "Net income / average shareholders' equity x 100",
+    note: "Equity is averaged over one year. Dividing a flow earned across the period by a "
+      + "single end-of-period snapshot overstates the return of any company whose balance "
+      + "sheet is growing.",
+    unite: "pct", graph: "line", besoins: ["net_income", "equity", "assets"],
+    calc: (s) => {
+      const r = {};
+      for (const k of Object.keys(s.net_income)) {
+        const ni = ouNull(s.net_income, k), eq = ouNull(s.equity, k);
+        if (ni === null || eq === null) continue;
+        const moyen = moyenneBilan(eq, s.equity, k);
+        if (socleUtilisable(moyen, s.assets, k)) r[k] = (ni / moyen) * 100;
+      }
+      return r;
+    } },
   roa: {
     nom: "ROA (%)", cat: "Margins & returns",
-    formule: "Net income / total assets × 100",
-    note: "Assets are a balance-sheet item: taken at period end, never averaged.",
+    formule: "Net income / average total assets x 100",
+    note: "Assets are averaged over one year, for the same reason as ROE.",
     unite: "pct", graph: "line", besoins: ["net_income", "assets"],
-    calc: (s) => ratioPct(s.net_income, s.assets) },
+    calc: (s) => {
+      const r = {};
+      for (const k of Object.keys(s.net_income)) {
+        const ni = ouNull(s.net_income, k), ac = ouNull(s.assets, k);
+        if (ni === null || ac === null) continue;
+        const moyen = moyenneBilan(ac, s.assets, k);
+        if (moyen > 0) r[k] = (ni / moyen) * 100;
+      }
+      return r;
+    } },
+  /**
+   * ROIC normalise, concu pour etre COMPARABLE entre societes et dans le
+   * temps -- et non pour reproduire le chiffre publie par une societe.
+   *
+   *   ROIC = NOPAT / capital investi MOYEN
+   *   NOPAT = resultat operationnel x (1 - 21 %)
+   *   capital investi = capitaux propres + dette portant interet
+   *                     + actions preferentielles + interets minoritaires
+   *                     - tresorerie et placements court terme
+   *
+   * Le taux d'impot est volontairement FORFAITAIRE a 21 %. Utiliser le taux
+   * effectif ferait bouger le ratio au gre des credits d'impot, des rapatri-
+   * ements exceptionnels et des changements de perimetre, alors qu'on cherche
+   * a mesurer la rentabilite de l'outil economique.
+   *
+   * Le capital investi est MOYENNE sur un an : le numerateur est un flux
+   * gagne tout au long de la periode, le denominateur une photo de fin. Sans
+   * moyenne, toute societe dont le bilan grossit voit son ROIC surestime.
+   *
+   * Renvoie null si le resultat operationnel ou les capitaux propres
+   * manquent, ou si le capital investi est nul ou negatif. Les postes
+   * optionnels absents valent zero.
+   */
   roic: {
-    nom: "ROIC — operating capital (%)", cat: "Margins & returns",
-    formule: "NOPAT / (total assets − cash − non-interest-bearing current liabilities) × 100",
-    note: "The mainstream definition, and the only one comparable across companies: it does not "
-      + "depend on how the balance sheet is financed. NOPAT uses the company's effective tax rate.",
+    nom: "ROIC (%)", cat: "Margins & returns",
     unite: "pct", graph: "line",
-    besoins: ["operating_income", "assets", "cur_liab", "cash", "short_debt",
-      "income_tax", "pretax_income"],
-    calc: roicOperationnel },
-  roic_financement: {
-    nom: "ROIC — invested capital (%)", cat: "Margins & returns",
-    formule: "NOPAT / (equity + total debt − cash) × 100",
-    note: "Financing view. Beware on heavy repurchasers: buybacks shrink equity, so this ratio "
-      + "runs far above the operating one — Apple prints ~87% here against ~35% on the operating "
-      + "basis. Both are right; they measure different capital.",
-    unite: "pct", graph: "line",
-    besoins: ["operating_income", "equity", "cash", "lt_debt", "short_debt",
-      "income_tax", "pretax_income"],
-    calc: roic },
+    formule: "Operating income x (1 - 21%) / average invested capital x 100",
+    note: "Flat 21% tax rate for every company, and invested capital averaged over one year. "
+      + "A comparison metric, not the company's own reported ROIC. Invested capital = equity "
+      + "+ interest-bearing debt + preferred + minorities - cash and short-term investments.",
+    besoins: ["operating_income", "equity", "capitaux_avec_mi", "lt_debt", "dette_ct_totale",
+      "dette_lt_courante", "emprunts_ct", "billets_tresorerie", "effets_payer",
+      "loyer_fin_ct", "loyer_fin_lt", "cash", "placements_ct",
+      "actions_preferentielles", "interets_minoritaires", "assets"],
+    calc: (s) => {
+      const r = {};
+      for (const k of Object.keys(s.operating_income)) {
+        const ebit = ouNull(s.operating_income, k);
+        if (ebit === null) continue;
+        const ic = capitalInvesti(s, k);
+        if (ic === null) continue;
+        const icMoyen = moyenneBilan(ic, { ...serieCapital(s), [k]: ic }, k);
+        if (!socleUtilisable(icMoyen, s.assets, k)) continue;
+        r[k] = (ebit * (1 - TAUX_NORMALISE)) / icMoyen * 100;
+      }
+      return r;
+    } },
+
+  fcf: {
+    nom: "Free cash flow (FCF)", cat: "Cash flow",
+    formule: "Operating cash flow − capital expenditure",
+    unite: "money", graph: "bar", besoins: ["ocf", "capex"],
+    calc: (s) => {
+      const r = {};
+      for (const a of Object.keys(s.ocf)) if (a in s.capex) r[a] = s.ocf[a] - s.capex[a];
+      return r;
+    } },
+  gross_margin: {
+    nom: "Gross margin (%)", cat: "Margins & returns",
+    formule: "Gross profit / revenue × 100",
+    unite: "pct", graph: "line", besoins: ["gross_profit", "revenue"],
+    calc: (s) => ratioPct(s.gross_profit, s.revenue) },
+  operating_margin: {
+    nom: "Operating margin (%)", cat: "Margins & returns",
+    formule: "Operating income / revenue × 100",
+    unite: "pct", graph: "line", besoins: ["operating_income", "revenue"],
+    calc: (s) => ratioPct(s.operating_income, s.revenue) },
+  net_margin: {
+    nom: "Net margin (%)", cat: "Margins & returns",
+    formule: "Net income / revenue × 100",
+    unite: "pct", graph: "line", besoins: ["net_income", "revenue"],
+    calc: (s) => ratioPct(s.net_income, s.revenue) },
+  fcf_margin: {
+    nom: "FCF margin (%)", cat: "Margins & returns",
+    formule: "(Operating cash flow − capex) / revenue × 100",
+    unite: "pct", graph: "line", besoins: ["fcf", "revenue"],
+    calc: (s) => ratioPct(s.fcf, s.revenue) },
+  rd_intensity: {
+    nom: "R&D intensity (R&D / revenue %)", cat: "Margins & returns",
+    formule: "R&D expense / revenue × 100",
+    unite: "pct", graph: "line", besoins: ["rd", "revenue"],
+    calc: (s) => ratioPct(s.rd, s.revenue) },
+  roe: {
+    nom: "ROE (%)", cat: "Margins & returns",
+    formule: "Net income / average shareholders' equity x 100",
+    note: "Equity is averaged over one year. Dividing a flow earned across the period by a "
+      + "single end-of-period snapshot overstates the return of any company whose balance "
+      + "sheet is growing.",
+    unite: "pct", graph: "line", besoins: ["net_income", "equity", "assets"],
+    calc: (s) => {
+      const r = {};
+      for (const k of Object.keys(s.net_income)) {
+        const ni = ouNull(s.net_income, k), eq = ouNull(s.equity, k);
+        if (ni === null || eq === null) continue;
+        const moyen = moyenneBilan(eq, s.equity, k);
+        if (socleUtilisable(moyen, s.assets, k)) r[k] = (ni / moyen) * 100;
+      }
+      return r;
+    } },
+  roa: {
+    nom: "ROA (%)", cat: "Margins & returns",
+    formule: "Net income / average total assets x 100",
+    note: "Assets are averaged over one year, for the same reason as ROE.",
+    unite: "pct", graph: "line", besoins: ["net_income", "assets"],
+    calc: (s) => {
+      const r = {};
+      for (const k of Object.keys(s.net_income)) {
+        const ni = ouNull(s.net_income, k), ac = ouNull(s.assets, k);
+        if (ni === null || ac === null) continue;
+        const moyen = moyenneBilan(ac, s.assets, k);
+        if (moyen > 0) r[k] = (ni / moyen) * 100;
+      }
+      return r;
+    } },
   sbc_revenue: {
     nom: "SBC / revenue (%)", cat: "Margins & returns",
     formule: "Stock-based compensation / revenue × 100",
@@ -404,15 +635,40 @@ export const DERIVE = {
     calc: (s) => ratioPct(s.sbc, s.revenue) },
   fcf_conversion: {
     nom: "FCF / net income conversion (%)", cat: "Margins & returns",
-    formule: "(Operating cash flow − capex) / net income × 100",
-    note: "Above 100% means earnings are more than covered by real cash.",
-    unite: "pct", graph: "line", besoins: ["fcf", "net_income"],
-    calc: (s) => ratioPct(s.fcf, s.net_income) },
+    formule: "(Operating cash flow - capex) / net income x 100",
+    note: "Above 100% means earnings are more than covered by real cash. Undefined when net "
+      + "income is negative or near zero: dividing by a vanishing denominator produced readings "
+      + "of 1550% that meant nothing. Those periods are dropped.",
+    unite: "pct", graph: "line", besoins: ["fcf", "net_income", "revenue"],
+    calc: (s) => {
+      const r = {};
+      for (const k of Object.keys(s.fcf)) {
+        const ni = ouNull(s.net_income, k), f = ouNull(s.fcf, k);
+        if (ni === null || f === null || ni <= 0) continue;
+        // un resultat net negligeable devant l'activite fait exploser le ratio
+        const ca = ouNull(s.revenue, k);
+        if (ca && ni / ca < 0.02) continue;
+        r[k] = (f / ni) * 100;
+      }
+      return r;
+    } },
   effective_tax: {
     nom: "Effective tax rate (%)", cat: "Margins & returns",
-    formule: "Income tax expense / pre-tax income × 100",
+    formule: "Income tax expense / pre-tax income x 100",
+    note: "Only computed on a positive pre-tax income, and only kept between -50% and 100%. "
+      + "A loss-making year or a one-off credit produced rates of 454% or -119%, which describe "
+      + "an accounting event rather than a tax burden.",
     unite: "pct", graph: "line", besoins: ["income_tax", "pretax_income"],
-    calc: (s) => ratioPct(s.income_tax, s.pretax_income) },
+    calc: (s) => {
+      const r = {};
+      for (const k of Object.keys(s.pretax_income)) {
+        const av = ouNull(s.pretax_income, k), im = ouNull(s.income_tax, k);
+        if (av === null || im === null || av <= 0) continue;
+        const taux = (im / av) * 100;
+        if (taux >= -50 && taux <= 100) r[k] = taux;
+      }
+      return r;
+    } },
   sga_margin: {
     nom: "SG&A / revenue (%)", cat: "Margins & returns",
     formule: "SG&A expense / revenue × 100",
@@ -428,9 +684,19 @@ export const DERIVE = {
   interest_coverage: {
     nom: "Interest coverage (EBIT / interest)", cat: "Health & solvency",
     formule: "Operating income / interest expense",
-    note: "Undefined when interest expense is zero; those periods are dropped.",
+    note: "Undefined without a real interest charge. A company with almost no debt printed "
+      + "coverage ratios of 15,000x, which says nothing beyond \"no debt\"; the ratio is capped "
+      + "at 100x, a level above which solvency is no longer the question.",
     unite: "ratio", graph: "line", besoins: ["operating_income", "interest_expense"],
-    calc: (s) => ratio(s.operating_income, s.interest_expense) },
+    calc: (s) => {
+      const r = {};
+      for (const k of Object.keys(s.operating_income)) {
+        const ebit = ouNull(s.operating_income, k), inte = ouNull(s.interest_expense, k);
+        if (ebit === null || inte === null || inte <= 0) continue;
+        r[k] = Math.min(ebit / inte, 100);
+      }
+      return r;
+    } },
   debt_to_equity: {
     nom: "Debt / equity", cat: "Health & solvency",
     formule: "(Long-term debt + short-term debt) / shareholders' equity",
