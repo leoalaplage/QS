@@ -194,7 +194,22 @@ function trierPoints(lignes) {
   const instant = sansDebut > lignes.length / 2;
 
   const meilleurs = new Map();   // cle periode -> {rang, point}
+  const formesVues = new Map();  // cle periode -> Set des formulaires rencontres
+
+  /**
+   * On retient la meilleure valeur pour une periode, MAIS on garde trace de
+   * tous les formulaires qui l'ont publiee.
+   *
+   * Sans ca : le bilan de cloture d'un exercice figure dans le 10-K, puis a
+   * nouveau dans le 10-Q suivant comme colonne comparative. Le 10-Q etant
+   * depose plus tard, il gagnait la deduplication -- et le filtre « photo de
+   * fin d'exercice » rejetait ensuite le point parce que sa forme n'etait pas
+   * un 10-K. Les capitaux propres d'Apple s'arretaient a 2023, et avec eux le
+   * ROIC, le ROE, le ROA et le current ratio.
+   */
   const garder = (cle, rang, point) => {
+    if (!formesVues.has(cle)) formesVues.set(cle, new Set());
+    formesVues.get(cle).add(point.forme);
     const actuel = meilleurs.get(cle);
     if (!actuel || cmpRang(rang, actuel.rang) > 0) meilleurs.set(cle, { rang, point });
   };
@@ -238,7 +253,9 @@ function trierPoints(lignes) {
     }
   }
 
-  const tout = [...meilleurs.values()].map((x) => x.point);
+  const tout = [...meilleurs.entries()].map(([cle, x]) => ({
+    ...x.point, formesToutes: formesVues.get(cle) || new Set([x.point.forme]),
+  }));
   const tri = (a, b) => a.fin - b.fin;
   return {
     instant,
@@ -383,8 +400,10 @@ function serieAnnuelle(tri, rapport) {
   const serie = {};
   const source = tri.instant ? tri.instants : tri.annees;
   for (const p of source) {
-    // instants : on ne garde que les photos de fin d'exercice
-    if (tri.instant && !FORMES_ANNUELLES.has(p.forme)) continue;
+    // instants : on ne garde que les photos de fin d'exercice. Il suffit
+    // qu'un rapport annuel ait publie cette date, meme si la valeur retenue
+    // vient d'un 10-Q ulterieur qui la reprend en comparatif.
+    if (tri.instant && ![...p.formesToutes].some((f) => FORMES_ANNUELLES.has(f))) continue;
     serie[p.fin.getUTCFullYear()] = p.val;
     rapport.formes.add(p.forme);
   }

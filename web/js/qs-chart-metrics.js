@@ -223,15 +223,61 @@ function detteCapitaux(s) {
   return r;
 }
 
-/** ROIC approx. (%) = EBIT x (1 - 21 %) / capital investi. Repere de tendance. */
+/**
+ * NOPAT : resultat operationnel apres impot, au taux EFFECTIF de la societe.
+ * Apple paie 15,6 % et non 21 % : forcer le taux legal sous-estimait le
+ * NOPAT de 7 %. On ne retombe sur 21 % que si l'impot ou le resultat avant
+ * impot manquent, ou si le taux calcule est aberrant (credit d'impot, perte).
+ */
+function nopat(s, a) {
+  const impot = s.income_tax ? s.income_tax[a] : null;
+  const avant = s.pretax_income ? s.pretax_income[a] : null;
+  let taux = 0.21;
+  if (impot != null && avant) {
+    const t = impot / avant;
+    if (t >= 0 && t <= 0.5) taux = t;
+  }
+  return s.operating_income[a] * (1 - taux);
+}
+
+/**
+ * ROIC, vue FINANCEMENT : capital apporte par les actionnaires et les
+ * creanciers, net de la tresorerie.
+ *
+ * Attention a la lecture : chez une societe qui rachete massivement ses
+ * actions, les capitaux propres fondent et ce ratio s'envole. Apple sort a
+ * 87 % sur cet exercice, contre 35 % environ chez la plupart des sites --
+ * les deux chiffres sont exacts, ils ne mesurent pas le meme capital.
+ * Comparer deux societes sur cette base n'a de sens que si elles ont une
+ * politique de rachat comparable.
+ */
 function roic(s) {
-  const op = s.operating_income, eq = s.equity, cash = s.cash;
-  const ltd = s.lt_debt, std = s.short_debt;
   const r = {};
-  for (const a of Object.keys(op)) {
-    if (!(a in eq)) continue;
-    const ic = eq[a] + (ltd[a] || 0) + (std[a] || 0) - (cash[a] || 0);
-    if (ic > 0) r[a] = (100.0 * op[a] * (1 - 0.21)) / ic;
+  for (const a of Object.keys(s.operating_income)) {
+    if (!(a in s.equity)) continue;
+    const ic = s.equity[a] + (s.lt_debt[a] || 0) + (s.short_debt[a] || 0) - (s.cash[a] || 0);
+    if (ic > 0) r[a] = (100.0 * nopat(s, a)) / ic;
+  }
+  return r;
+}
+
+/**
+ * ROIC, vue OPERATIONNELLE : capital reellement immobilise dans l'activite,
+ * soit l'actif total moins la tresorerie et moins les dettes d'exploitation
+ * qui ne portent pas d'interet (fournisseurs, charges a payer).
+ *
+ * C'est la definition la plus repandue et la seule qui reste comparable
+ * entre societes : elle ne depend pas de la structure du bilan ni de
+ * l'historique de rachats d'actions.
+ */
+function roicOperationnel(s) {
+  const r = {};
+  for (const a of Object.keys(s.operating_income)) {
+    const actif = s.assets[a], courant = s.cur_liab[a];
+    if (actif == null || courant == null) continue;
+    const sansInterets = courant - (s.short_debt[a] || 0);
+    const ic = actif - (s.cash[a] || 0) - sansInterets;
+    if (ic > 0) r[a] = (100.0 * nopat(s, a)) / ic;
   }
   return r;
 }
@@ -333,11 +379,23 @@ export const DERIVE = {
     unite: "pct", graph: "line", besoins: ["net_income", "assets"],
     calc: (s) => ratioPct(s.net_income, s.assets) },
   roic: {
-    nom: "ROIC, approx. (%)", cat: "Margins & returns",
-    formule: "Operating income × (1 − 21%) / (equity + total debt − cash) × 100",
-    note: "Flat 21% tax rate, not the company's effective rate — a trend marker, not an audited figure.",
+    nom: "ROIC — operating capital (%)", cat: "Margins & returns",
+    formule: "NOPAT / (total assets − cash − non-interest-bearing current liabilities) × 100",
+    note: "The mainstream definition, and the only one comparable across companies: it does not "
+      + "depend on how the balance sheet is financed. NOPAT uses the company's effective tax rate.",
     unite: "pct", graph: "line",
-    besoins: ["operating_income", "equity", "cash", "lt_debt", "short_debt"],
+    besoins: ["operating_income", "assets", "cur_liab", "cash", "short_debt",
+      "income_tax", "pretax_income"],
+    calc: roicOperationnel },
+  roic_financement: {
+    nom: "ROIC — invested capital (%)", cat: "Margins & returns",
+    formule: "NOPAT / (equity + total debt − cash) × 100",
+    note: "Financing view. Beware on heavy repurchasers: buybacks shrink equity, so this ratio "
+      + "runs far above the operating one — Apple prints ~87% here against ~35% on the operating "
+      + "basis. Both are right; they measure different capital.",
+    unite: "pct", graph: "line",
+    besoins: ["operating_income", "equity", "cash", "lt_debt", "short_debt",
+      "income_tax", "pretax_income"],
     calc: roic },
   sbc_revenue: {
     nom: "SBC / revenue (%)", cat: "Margins & returns",
