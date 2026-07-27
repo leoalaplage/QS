@@ -320,7 +320,14 @@ export async function serieValo(cleMetrique, ticker, mode, construire,
 
   // Le cours est deja sur la base d'aujourd'hui : on y ramene les series
   // par action avant tout rapprochement.
-  const actionsBrutes = s.shares_diluted || construire("shares_diluted");
+  //
+  // Quand la metrique n'a pas besoin du nombre d'actions -- le cours seul,
+  // le PER -- on le construit quand meme, uniquement pour en deduire les
+  // facteurs de split. Cette construction-la est SILENCIEUSE : ses tags et
+  // ses alertes n'ont rien a faire dans l'audit d'une metrique qui ne s'en
+  // sert pas. Sans quoi « Share price » signalait des incoherences portant
+  // en realite sur une serie d'actions.
+  const actionsBrutes = s.shares_diluted || construire("shares_diluted", true);
   const facteurs = facteursSplit(actionsBrutes);
   if (s.shares_diluted) s.shares_diluted = appliquer(s.shares_diluted, facteurs, "multiplier");
   if (s.actions_circulation) s.actions_circulation = appliquer(s.actions_circulation, facteurs, "multiplier");

@@ -448,18 +448,43 @@ function serieTrimestrielle(tri, rapport, nonAdditif = false) {
     if (q.derive) rapport.derives.push(cle);
   }
 
-  // Controle : les 4 trimestres d'un exercice doivent redonner l'annuel publie
+  // Controle : les 4 trimestres d'un exercice doivent redonner l'annuel publie.
+  //
+  // Il ne vaut que pour un FLUX -- chiffre d'affaires, resultat, flux de
+  // tresorerie -- qui se cumule sur l'exercice. Une grandeur non additive
+  // ne s'y prete pas : un nombre d'actions, un cours ou un benefice par
+  // action valent a peu pres la meme chose chaque trimestre, si bien que
+  // leur somme fait quatre fois l'annuel. Le controle criait alors un
+  // ecart de -300 % sur des series parfaitement saines, et l'alerte
+  // remontait sous le nom de « Share price », qui construit une serie
+  // d'actions en interne pour retrouver ses facteurs de split.
+  if (nonAdditif) return serie;
+
+  //  Les ecarts constates ne sont PAS signales ici. Cette fonction ne voit
+  //  qu'un seul tag XBRL, alors qu'une metrique en fusionne plusieurs et
+  //  qu'un exercice donne finit affiche avec les valeurs d'un seul d'entre
+  //  eux. On les remonte donc a `serieBase`, avec les trimestres concernes,
+  //  qui ne gardera que ceux portant sur des donnees reellement affichees.
+  //
+  //  Sans cette precaution : Fair Isaac publie son exercice 2018 a 1 032,5
+  //  millions sous l'ancien tag `Revenues`, puis a 1 000,1 millions sous
+  //  `RevenueFromContractWithCustomer...` apres passage a l'ASC 606. Le
+  //  graphique affiche 1 000,1 et ses quatre trimestres sommaient a 1 000,1,
+  //  soit une coherence parfaite -- mais l'ancien tag, retenu pour les
+  //  annees anterieures ou lui seul a des donnees, signalait quand meme un
+  //  ecart de 3,1 % sur un exercice dont il ne fournissait plus rien.
   for (const an of tri.annees) {
-    const dedans = [...quarts.values()].filter((q) => q.fin > an.debut && q.fin <= an.fin);
+    const dedans = [...quarts.entries()].filter(([, q]) => q.fin > an.debut && q.fin <= an.fin);
     if (dedans.length !== 4) continue;
-    const somme = dedans.reduce((a, q) => a + q.val, 0);
+    const somme = dedans.reduce((a, [, q]) => a + q.val, 0);
     const ecart = an.val - somme;
     // tolerance : 0,5 % de l'exercice (arrondis de publication)
     if (Math.abs(ecart) > Math.abs(an.val) * 0.005) {
-      rapport.incoherences.push(
-        `Fiscal year ended ${an.fin.toISOString().slice(0, 10)}: the four quarters ` +
-        `sum to ${(ecart / Math.abs(an.val) * 100).toFixed(1)}% away from the reported annual total.`
-      );
+      rapport.anomaliesAnnuelles.push({
+        fin: an.fin.toISOString().slice(0, 10),
+        pct: ecart / Math.abs(an.val) * 100,
+        cles: dedans.map(([c]) => c),
+      });
     }
   }
   return serie;
@@ -508,7 +533,8 @@ function serieTTM(tri, rapport, nonAdditif = false) {
 // ---------------------------------------------------------------------
 /** Rapport vierge de tracabilite pour une metrique. */
 function nouveauRapport() {
-  return { tags: [], devises: new Set(), formes: new Set(), derives: [], incoherences: [], points: 0 };
+  return { tags: [], devises: new Set(), formes: new Set(), derives: [], incoherences: [],
+    anomaliesAnnuelles: [], points: 0 };
 }
 
 /** Serie d'une metrique BASE (fusion multi-tags, 1er tag disponible gagne). */
@@ -531,6 +557,7 @@ function serieBase(facts, cle, mode, rapport) {
           ? serieTrimestrielle(tri, sousRapport, !!d.nonAdditif)   // valeur ponctuelle
           : serieTTM(tri, sousRapport, !!d.nonAdditif);
 
+    const avant = new Set(Object.keys(resultat));
     let ajoutes = 0;
     for (const [k, v] of Object.entries(serie)) {
       if (k in resultat) continue;           // le 1er tag disponible gagne
@@ -543,6 +570,18 @@ function serieBase(facts, cle, mode, rapport) {
       for (const f of sousRapport.formes) rapport.formes.add(f);
       rapport.derives.push(...sousRapport.derives.filter((c) => c in resultat));
       rapport.incoherences.push(...sousRapport.incoherences);
+
+      //  Un ecart annuel ne concerne l'utilisateur que si les quatre
+      //  trimestres en cause sont ceux qu'il a sous les yeux. Ce tag les
+      //  fournit s'ils etaient absents avant lui et presents apres : sinon
+      //  c'est un tag anterieur qui alimente cet exercice, et c'est sa
+      //  version des chiffres qui est affichee.
+      for (const a of sousRapport.anomaliesAnnuelles) {
+        if (!a.cles.every((c) => !avant.has(c) && c in resultat)) continue;
+        rapport.incoherences.push(
+          `Fiscal year ended ${a.fin}: the four quarters sum to `
+          + `${a.pct.toFixed(1)}% away from the reported annual total.`);
+      }
     }
   }
   return resultat;

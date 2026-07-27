@@ -631,7 +631,13 @@ async function generer({ silencieux = false } = {}) {
               derives: [], incoherences: [], points: 0 };
             construireSerie(facts, "revenue", mode, cache, sonde);
             const r = await serieValo(m.cle.slice(5), s.ticker, mode,
-              (b) => construireSerie(facts, b, mode, cache, rapport),
+              //  `silencieux` sert aux series construites pour un usage
+              //  interne : leur audit ne concerne pas la metrique affichee.
+              (b, silencieux) => construireSerie(facts, b, mode, cache,
+                silencieux
+                  ? { tags: [], devises: new Set(), formes: new Set(),
+                      derives: [], incoherences: [], points: 0 }
+                  : rapport),
               { pas: $("#pas-cours").value, devisesComptes: sonde.devises });
             serie = r.serie;
             if (r.erreur) rapport.incoherences.push(r.erreur);
