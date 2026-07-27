@@ -383,13 +383,21 @@ export function decoderCle(cle) {
       trimestre: Math.floor(d.getUTCMonth() / 3) + 1,
     };
   }
+  // Une periode est placee a sa FIN, pas a son debut.
+  //
+  // La valeur d'une periode n'est connue qu'a sa cloture : un TTM etiquete
+  // 2026Q1 couvre les douze mois s'achevant fin mars 2026, et un exercice
+  // 2025 se termine fin 2025. Les placer a l'ouverture decalait toute serie
+  // comptable d'une periode entiere -- une annee complete en mode annuel --
+  // par rapport a une serie de cours, qui est datee au jour le jour.
   const m = String(cle).match(/^(\d{4})Q([1-4])$/);
   if (m) {
     const an = Number(m[1]), q = Number(m[2]);
-    return { x: an + (q - 1) / 4, etiquette: `Q${q} ${String(an).slice(2)}`, annee: an, trimestre: q };
+    return { x: an + q / 4, etiquette: `Q${q} ${String(an).slice(2)}`, annee: an, trimestre: q,
+      largeur: 0.25 };
   }
   const an = Number(cle);
-  return { x: an, etiquette: String(an), annee: an, trimestre: null };
+  return { x: an + 1, etiquette: String(an), annee: an, trimestre: null, largeur: 1 };
 }
 
 // ---------------------------------------------------------------------

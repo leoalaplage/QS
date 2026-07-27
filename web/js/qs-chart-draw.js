@@ -289,10 +289,10 @@ export function tracer({
   const pasBarres = barres.length || empilees.length
     ? Math.min(...[...barres, ...empilees].map(pasDe)) : (pasX || 1);
   const largeurGroupe = 0.68 * (pasBarres || 1);
-  if (barres.length || empilees.length) {
-    xMinD -= largeurGroupe / 2;
-    xMaxD += largeurGroupe / 2;
-  }
+  // Les barres s'etendent VERS LA GAUCHE depuis la fin de leur periode :
+  // une barre trimestrielle couvre bien son trimestre, et non un intervalle
+  // centre a cheval sur le suivant.
+  if (barres.length || empilees.length) xMinD -= largeurGroupe;
   // barres et aires s'appuient sur zero : il doit rester dans le cadrage
   for (const s of aireOuBarre) {
     const b = bornesY[s.axe];
@@ -384,7 +384,7 @@ export function tracer({
     if (s.type === "bar" || s.type === "bar-stacked") {
       const empile = s.type === "bar-stacked";
       const rang = empile ? 0 : barres.indexOf(s);
-      const decalage = empile ? 0 : (rang - (barres.length - 1) / 2) * w;
+      const part = empile ? largeurGroupe : largeurBarre;
       c.fillStyle = s.couleur;
       c.strokeStyle = "#ffffff";
       c.lineWidth = 0.5 * U;
@@ -392,11 +392,14 @@ export function tracer({
         const socle = empile ? (basePile.get(p.x) || 0) : 0;
         if (empile) basePile.set(p.x, socle + p.y);
         const yHaut = y(socle + p.y), yBas = y(socle);
-        const cx = xPx(p.x) + decalage;
-        c.fillRect(cx - w / 2, Math.min(yHaut, yBas), w, Math.abs(yHaut - yBas));
-        if (w > 3 * U) c.strokeRect(cx - w / 2, Math.min(yHaut, yBas), w, Math.abs(yHaut - yBas));
+        // la periode va de (x - largeurGroupe) a x ; chaque serie occupe sa
+        // tranche a l'interieur
+        const gaucheData = p.x - largeurGroupe + (empile ? 0 : rang * part);
+        const gx = xPx(gaucheData), dx = xPx(gaucheData + part);
+        c.fillRect(gx, Math.min(yHaut, yBas), dx - gx, Math.abs(yHaut - yBas));
+        if (dx - gx > 3 * U) c.strokeRect(gx, Math.min(yHaut, yBas), dx - gx, Math.abs(yHaut - yBas));
         if (montreEtiquettes) {
-          etiquettes.push({ x: cx, y: p.y >= 0 ? yHaut - 4 * U : yHaut + 12 * U,
+          etiquettes.push({ x: (gx + dx) / 2, y: p.y >= 0 ? yHaut - 4 * U : yHaut + 12 * U,
             texte: etiquetteValeur(p.y, s.unite, s.devise) });
         }
       }
