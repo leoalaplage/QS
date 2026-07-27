@@ -27,7 +27,7 @@ const act = statut($("#statut"), $("#statut-texte"));
 // Etat restaure : passer de Chart a Table et revenir ne doit rien effacer.
 const DEFAUTS = {
   societes: [], metriques: [], periode: "annuel", annees: 15,
-  transformation: "aucune", etiquettes: "auto",
+  transformation: "aucune", etiquettes: "auto", pasCours: "1mo",
 };
 const sauve = lireEtat("chart", DEFAUTS);
 
@@ -41,6 +41,7 @@ function enregistrer() {
     annees: Number($("#annees").value) || 15,
     transformation: $("#transformation").value,
     etiquettes: $("#etiquettes").value,
+    pasCours: $("#pas-cours").value,
   });
 }
 
@@ -340,6 +341,7 @@ $("#periode").value = sauve.periode || "annuel";
 $("#annees").value = sauve.annees || 15;
 $("#transformation").value = sauve.transformation || "aucune";
 $("#etiquettes").value = sauve.etiquettes || "auto";
+$("#pas-cours").value = sauve.pasCours || "1mo";
 
 const DUREES = [["1Y", 1], ["3Y", 3], ["5Y", 5], ["10Y", 10], ["15Y", 15], ["Max", 40]];
 const zonePresets = $("#presets-duree");
@@ -518,7 +520,8 @@ async function generer({ silencieux = false } = {}) {
         if (m.cle.startsWith("valo:")) {
           try {
             const r = await serieValo(m.cle.slice(5), s.ticker, mode,
-              (b) => construireSerie(facts, b, mode, cache, rapport));
+              (b) => construireSerie(facts, b, mode, cache, rapport),
+              { pas: $("#pas-cours").value });
             serie = r.serie;
             if (r.devise) rapport.devises.add(r.devise);
             rapport.formes.add(`price: ${r.fournisseur}`);
@@ -605,12 +608,20 @@ async function generer({ silencieux = false } = {}) {
   const titre = (met.length === 1 ? met[0].nom : met.map((m) => m.nom).join(" / "))
     + suffixe + " — " + soc.map((s) => s.ticker).join(", ");
 
+  // Une serie de cours suit le calendrier boursier, pas le calendrier
+  // comptable : l'axe doit le dire.
+  const pasCours = $("#pas-cours").value;
+  const surCotations = series.some((x) => x.id.includes("|valo:")) && pasCours !== "periode";
+  const libellePas = { "1d": "daily", "1wk": "weekly", "1mo": "monthly" }[pasCours] || "";
+
   let rendu;
   try {
     rendu = tracer({
       series, titre,
       etiquettes: { auto: "auto", oui: true, non: false }[$("#etiquettes").value] ?? "auto",
-      sousAxeX: trimestriel ? "Period (calendar quarter of period end)" : "Fiscal year",
+      sousAxeX: surCotations
+        ? `Trading date (${libellePas} close; accounting figures step at each report)`
+        : trimestriel ? "Period (calendar quarter of period end)" : "Fiscal year",
     });
   } catch (e) {
     act.cacher();
@@ -645,7 +656,7 @@ async function generer({ silencieux = false } = {}) {
 }
 
 $("#btn-generer").addEventListener("click", () => generer());
-for (const id of ["#periode", "#transformation", "#etiquettes"]) {
+for (const id of ["#periode", "#transformation", "#etiquettes", "#pas-cours"]) {
   $(id).addEventListener("change", rafraichir);
 }
 champAnnees.addEventListener("change", rafraichir);

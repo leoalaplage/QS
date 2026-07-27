@@ -347,8 +347,25 @@ const cleTrimestre = (fin, debut = null) => {
  */
 const cleInstant = (fin) => cleDe(new Date(fin.getTime() - 14 * 86400000));
 
-/** Coordonnee X et etiquette d'une cle de periode. */
+/**
+ * Coordonnee X et etiquette d'une cle de periode.
+ * Trois formes : "2025" (annuel), "2025Q3" (trimestriel) et "2025-07-15"
+ * (une date, pour les series de cours qui ne suivent pas le calendrier
+ * comptable).
+ */
 export function decoderCle(cle) {
+  const j = String(cle).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (j) {
+    const an = Number(j[1]);
+    const d = new Date(`${cle}T00:00:00Z`);
+    const debut = Date.UTC(an, 0, 1);
+    const duree = Date.UTC(an + 1, 0, 1) - debut;
+    return {
+      x: an + (d.getTime() - debut) / duree,
+      etiquette: cle, annee: an,
+      trimestre: Math.floor(d.getUTCMonth() / 3) + 1,
+    };
+  }
   const m = String(cle).match(/^(\d{4})Q([1-4])$/);
   if (m) {
     const an = Number(m[1]), q = Number(m[2]);

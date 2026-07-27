@@ -30,6 +30,9 @@ const cache = new Map();
  * @returns {{devise, fournisseur, points:[{t, cloture}]}}
  */
 export async function coursHistorique(ticker, { plage = "20y", pas = "1mo" } = {}) {
+  // le quotidien n'est pas servi sur 20 ans : on borne pour ne pas se faire
+  // renvoyer une reponse vide
+  if (pas === "1d" && parseInt(plage, 10) > 10) plage = "10y";
   const cle = `${ticker}|${plage}|${pas}`;
   if (cache.has(cle)) return cache.get(cle);
   const base = workerUrl();
@@ -67,6 +70,44 @@ export function serieCours(historique, mode) {
     serie[clePeriode(p.t, trimestriel)] = p.cloture;
   }
   return serie;
+}
+
+/** Cours au pas natif du fournisseur, clefs = dates ISO. */
+export function serieCoursDatee(historique) {
+  const serie = {};
+  for (const p of historique.points) serie[p.t] = p.cloture;
+  return serie;
+}
+
+/**
+ * Derniere valeur comptable connue a une date donnee.
+ *
+ * Le cours bouge tous les jours, le denominateur d'un ratio ne change qu'au
+ * rythme des publications : un PER quotidien, c'est le cours du jour divise
+ * par le dernier BPA TTM publie. La serie comptable devient donc un escalier.
+ *
+ * On date une periode a sa CLOTURE. Le marche ne connait le chiffre qu'a la
+ * publication, quelques semaines plus tard : sur ces quelques semaines, le
+ * ratio affiche utilise un resultat que personne n'avait encore.
+ */
+function escalier(serieComptable) {
+  const bornes = Object.keys(serieComptable).map((cle) => {
+    const m = cle.match(/^(\d{4})Q([1-4])$/);
+    const fin = m
+      ? Date.UTC(Number(m[1]), Number(m[2]) * 3, 0)          // fin du trimestre
+      : Date.UTC(Number(cle), 11, 31);                        // fin de l'annee
+    return { fin, valeur: serieComptable[cle] };
+  }).sort((a, b) => a.fin - b.fin);
+
+  return (dateIso) => {
+    const t = new Date(`${dateIso}T00:00:00Z`).getTime();
+    let valeur = null;
+    for (const b of bornes) {
+      if (b.fin > t) break;
+      valeur = b.valeur;
+    }
+    return valeur;
+  };
 }
 
 // ---------------------------------------------------------------------
@@ -217,12 +258,16 @@ export const besoinDeCours = (cle) => cle in METRIQUES_VALO;
  * Serie d'une metrique de valorisation.
  * @param construire  (cleMetrique) => serie, pour les composants comptables
  */
-export async function serieValo(cleMetrique, ticker, mode, construire) {
+export async function serieValo(cleMetrique, ticker, mode, construire, { pas = "1mo" } = {}) {
   const def = METRIQUES_VALO[cleMetrique];
   if (!def) return { serie: {}, devise: null };
 
-  const hist = await coursHistorique(ticker);
-  const cours = serieCours(hist, mode);
+  const hist = await coursHistorique(ticker, { pas });
+  // Au pas natif (quotidien, hebdo, mensuel) les cles sont des DATES et les
+  // series comptables sont echantillonnees en escalier. Sinon on reste sur
+  // les cles de periode comptable.
+  const dateNatif = pas !== "periode";
+  const cours = dateNatif ? serieCoursDatee(hist) : serieCours(hist, mode);
   const s = {};
   for (const b of def.besoins) s[b] = construire(b);
 
@@ -232,6 +277,21 @@ export async function serieValo(cleMetrique, ticker, mode, construire) {
   const facteurs = facteursSplit(actionsBrutes);
   if (s.shares_diluted) s.shares_diluted = appliquer(s.shares_diluted, facteurs, "multiplier");
   if (s.eps_diluted) s.eps_diluted = appliquer(s.eps_diluted, facteurs, "diviser");
+
+  if (dateNatif) {
+    // chaque serie comptable devient une fonction du temps, evaluee aux dates
+    // de cotation
+    const marches = {};
+    for (const b of def.besoins) marches[b] = escalier(s[b]);
+    for (const b of def.besoins) {
+      const projetee = {};
+      for (const d of Object.keys(cours)) {
+        const v = marches[b](d);
+        if (v !== null) projetee[d] = v;
+      }
+      s[b] = projetee;
+    }
+  }
 
   // Les postes de bilan et les flux ne tombent pas toujours sur la meme
   // periode que la derniere cotation : on ne garde que les periodes ou tout
