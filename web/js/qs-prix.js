@@ -215,15 +215,32 @@ export const METRIQUES_VALO = {
   },
   ev_ebit: {
     nom: "EV / EBIT", cat: "Valuation", unite: "ratio", graph: "line",
-    formule: "(Market cap + total debt - cash) / operating income",
-    note: "Enterprise value uses the balance sheet at the same period end as the price.",
-    besoins: ["shares_diluted", "operating_income", "lt_debt", "short_debt", "cash"],
+    formule: "(Market cap + interest-bearing debt - cash and short-term investments) / operating income",
+    note: "Debt and cash use the same definitions as ROIC: the full interest-bearing debt, "
+      + "including finance leases and commercial paper, and cash extended to short-term "
+      + "investments. Undefined on a negative operating income.",
+    besoins: ["shares_diluted", "operating_income", "lt_debt", "dette_ct_totale",
+      "dette_lt_courante", "emprunts_ct", "billets_tresorerie", "effets_payer",
+      "loyer_fin_ct", "loyer_fin_lt", "cash", "placements_ct"],
     calc: (cours, s) => {
       const out = {};
+      const v = (serie, k) => {
+        const x = serie ? serie[k] : null;
+        return x == null || !isFinite(x) ? 0 : x;
+      };
       for (const k of Object.keys(cours)) {
         const n = s.shares_diluted[k], ebit = s.operating_income[k];
         if (!n || !ebit || ebit <= 0) continue;
-        const ev = cours[k] * n + (s.lt_debt[k] || 0) + (s.short_debt[k] || 0) - (s.cash[k] || 0);
+        // meme garde-fou anti-double-compte que le ROIC : l'agregat de dette
+        // courante contient deja ses composants
+        let courante = s.dette_ct_totale && s.dette_ct_totale[k] != null
+          ? s.dette_ct_totale[k]
+          : v(s.dette_lt_courante, k)
+            + (s.emprunts_ct && s.emprunts_ct[k] != null ? s.emprunts_ct[k]
+              : v(s.billets_tresorerie, k) + v(s.effets_payer, k));
+        const dette = v(s.lt_debt, k) + courante + v(s.loyer_fin_ct, k) + v(s.loyer_fin_lt, k);
+        const liquide = v(s.cash, k) + v(s.placements_ct, k);
+        const ev = cours[k] * n + dette - liquide;
         if (ev > 0) out[k] = ev / ebit;
       }
       return out;
@@ -258,15 +275,41 @@ export const besoinDeCours = (cle) => cle in METRIQUES_VALO;
  * Serie d'une metrique de valorisation.
  * @param construire  (cleMetrique) => serie, pour les composants comptables
  */
-export async function serieValo(cleMetrique, ticker, mode, construire, { pas = "1mo" } = {}) {
+/**
+ * Un ratio de valorisation ne vaut que si le cours et les comptes sont
+ * libelles dans la MEME monnaie.
+ *
+ * Ce n'est pas le cas des deposants etrangers cotes aux Etats-Unis : ASML
+ * cote en dollars et publie en euros, Novo Nordisk en dollars et couronnes
+ * danoises, TSMC en dollars et dollars taiwanais. Un PER calcule dessus
+ * etait faux du taux de change -- d'un facteur 6,5 chez Novo, 32 chez TSMC --
+ * et faux une seconde fois du ratio de l'ADR, un certificat TSMC representant
+ * cinq actions ordinaires.
+ *
+ * Convertir demanderait une serie de taux de change historiques et le ratio
+ * d'ADR de chaque societe, dont je ne dispose pas. On refuse donc de
+ * calculer plutot que d'afficher un nombre faux.
+ */
+function devisesCompatibles(deviseCours, devisesComptes) {
+  const comptes = [...(devisesComptes || [])].filter(Boolean);
+  if (!deviseCours || !comptes.length) return true;   // rien a comparer
+  return comptes.every((d) => d === deviseCours);
+}
+
+export async function serieValo(cleMetrique, ticker, mode, construire,
+  { pas = "1mo", devisesComptes = null } = {}) {
   const def = METRIQUES_VALO[cleMetrique];
   if (!def) return { serie: {}, devise: null };
 
-  const hist = await coursHistorique(ticker, { pas });
+  // « periode » n'est pas un pas de cotation : c'est une consigne de CLEFS.
+  // On interroge toujours le fournisseur avec un pas reel, sinon l'appel part
+  // avec interval=periode et echoue.
+  const dateNatifDemande = pas !== "periode";
+  const hist = await coursHistorique(ticker, { pas: dateNatifDemande ? pas : "1mo" });
   // Au pas natif (quotidien, hebdo, mensuel) les cles sont des DATES et les
   // series comptables sont echantillonnees en escalier. Sinon on reste sur
   // les cles de periode comptable.
-  const dateNatif = pas !== "periode";
+  const dateNatif = dateNatifDemande;
   const cours = dateNatif ? serieCoursDatee(hist) : serieCours(hist, mode);
   const s = {};
   for (const b of def.besoins) s[b] = construire(b);
@@ -296,6 +339,17 @@ export async function serieValo(cleMetrique, ticker, mode, construire, { pas = "
   // Les postes de bilan et les flux ne tombent pas toujours sur la meme
   // periode que la derniere cotation : on ne garde que les periodes ou tout
   // est present, plutot que de rapprocher des dates qui ne se correspondent pas.
+  // Le controle se fait APRES construction des composants : c'est a ce
+  // moment que la devise des comptes est connue.
+  if (!devisesCompatibles(hist.devise, devisesComptes)) {
+    return {
+      serie: {}, devise: hist.devise, fournisseur: hist.fournisseur,
+      erreur: `share price is quoted in ${hist.devise} while the accounts are reported in `
+        + `${[...devisesComptes].join(", ")}. Converting would need an exchange-rate history and `
+        + "the ADR ratio, so the ratio is not computed rather than shown wrong.",
+    };
+  }
+
   const serie = def.calc(cours, s);
   void decoderCle;
   return { serie, devise: hist.devise, fournisseur: hist.fournisseur };

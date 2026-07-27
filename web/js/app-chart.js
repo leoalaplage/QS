@@ -522,10 +522,16 @@ async function generer({ silencieux = false } = {}) {
         let serie;
         if (m.cle.startsWith("valo:")) {
           try {
+            // La devise des comptes se lit sur un poste quelconque de la
+            // societe, avant tout rapprochement avec le cours.
+            const sonde = { tags: [], devises: new Set(), formes: new Set(),
+              derives: [], incoherences: [], points: 0 };
+            construireSerie(facts, "revenue", mode, cache, sonde);
             const r = await serieValo(m.cle.slice(5), s.ticker, mode,
               (b) => construireSerie(facts, b, mode, cache, rapport),
-              { pas: $("#pas-cours").value });
+              { pas: $("#pas-cours").value, devisesComptes: sonde.devises });
             serie = r.serie;
+            if (r.erreur) rapport.incoherences.push(r.erreur);
             if (r.devise) rapport.devises.add(r.devise);
             rapport.formes.add(`price: ${r.fournisseur}`);
           } catch (e) {
