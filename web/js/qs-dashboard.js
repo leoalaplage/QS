@@ -78,7 +78,9 @@ const COLS = [
   //  Notes de regularite du flux de tresorerie libre, calculees sur la page
   //  FCF. Vides tant que la societe n'y a pas ete analysee : le tableau ne
   //  fabrique jamais un chiffre qu'il n'a pas.
-  ["FCF 5Y", 14, "fcf5"], ["FCF 10Y", 15, "fcf10"],
+  ["FCF 5Y", 14, "fcf5"], [">=med", 10, "fcf5med"],
+  ["FCF 10Y", 15, "fcf10"], [">=med", 10, "fcf10med"],
+  ["FCF Avg", 14, "fcfavg"],
 ];
 const LARGEUR_TABLE = COLS.reduce((a, c) => a + c[1], 0);   // 218 mm
 
@@ -93,6 +95,28 @@ export function dessinerDashboard(retenus, tousTitres, poids, {
   const aujourdhui = new Date().toISOString().slice(0, 10);
   //  Notes deposees par la page FCF. Absentes tant qu'on n'y est pas passe.
   const notesFcf = lireEtat("fcf.notes", {});
+
+  //  Medianes des notes FCF sur les societes AFFICHEES, pas sur un
+  //  univers theorique : la coche repond a « au-dessus de qui ? », et la
+  //  seule reponse utile est « des autres lignes du tableau ».
+  //  Les societes sans note n'y participent pas -- une absence n'est ni
+  //  bonne ni mauvaise, et la compter comme zero abaisserait la mediane
+  //  pour tout le monde.
+  const medianeDe = (cle) => {
+    const v = titresTri.map((t) => (notesFcf[t.Ticker] || {})[cle])
+      .filter((x) => x != null && isFinite(x)).sort((a, b) => a - b);
+    if (!v.length) return null;
+    const m = Math.floor(v.length / 2);
+    return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+  };
+  const medianes = { n5: medianeDe("n5"), n10: medianeDe("n10") };
+
+  /** Moyenne des deux notes ; d'une seule si l'autre manque. */
+  const moyenneFcf = (ticker) => {
+    const n = notesFcf[ticker] || {};
+    const v = [n.n5, n.n10].filter((x) => x != null && isFinite(x));
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  };
 
   const sous =
     `Universe: ${tousTitres.length} stocks   |   shown: ${titresTri.length}   |   weights ` +
@@ -149,6 +173,33 @@ export function dessinerDashboard(retenus, tousTitres, poids, {
           doc.fondCouleur(a ? "rgb(255,199,206)" : zebre);
           doc.texteCouleur(a ? "rgb(192,0,0)" : NOIR).police(8);
           doc.cell(w, H, String(a), { align: "C", fill: true, border: true });
+
+        } else if (cle === "fcfavg") {
+          const m = moyenneFcf(t.Ticker);
+          if (m == null) {
+            doc.fondCouleur(zebre).texteCouleur("rgb(160,160,160)").police(8);
+            doc.cell(w, H, "-", { align: "C", fill: true, border: true });
+          } else {
+            const fond = couleurScore(m);
+            doc.fondCouleur(rgb(fond)).texteCouleur(texteSur(fond)).police(8, true);
+            doc.cell(w, H, String(Math.round(m)), { align: "C", fill: true, border: true });
+            doc.police(8);
+          }
+
+        } else if (cle === "fcf5med" || cle === "fcf10med") {
+          const champ = cle === "fcf5med" ? "n5" : "n10";
+          const n = (notesFcf[t.Ticker] || {})[champ];
+          const med = medianes[champ];
+          const x0 = doc.x, y0 = doc.y;
+          if (n != null && med != null && n >= med) {
+            doc.fondCouleur("rgb(99,190,123)");
+            doc.cell(w, H, "", { fill: true, border: true });
+            doc.ligne(x0 + w * 0.30, y0 + 3.1, x0 + w * 0.44, y0 + 4.3, { couleur: BLANC, epaisseur: 0.6 });
+            doc.ligne(x0 + w * 0.44, y0 + 4.3, x0 + w * 0.72, y0 + 1.7, { couleur: BLANC, epaisseur: 0.6 });
+          } else {
+            doc.fondCouleur(zebre);
+            doc.cell(w, H, "", { fill: true, border: true });
+          }
 
         } else if (cle === "fcf5" || cle === "fcf10") {
           const n = (notesFcf[t.Ticker] || {})[cle === "fcf5" ? "n5" : "n10"];
@@ -213,7 +264,10 @@ export function dessinerDashboard(retenus, tousTitres, poids, {
       "FCF 5Y / 10Y = free cash flow consistency over 5 and 10 fiscal years, blending growth " +
       "(40%), how regular that growth was (R2 of a log-linear fit, 40%) and how stable the FCF " +
       "yield stayed (20%). Computed on the FCF page; '-' means that company has not been " +
-      "analysed there yet, or that a negative FCF year makes the fit impossible.");
+      "analysed there yet, or that a negative FCF year makes the fit impossible. " +
+      "The green check next to each marks a score at or above the MEDIAN of the companies " +
+      "shown in this table that have one - companies without a score do not count towards it. " +
+      "FCF Avg averages the 5Y and 10Y scores, or reports the only one available.");
     doc.texteCouleur(NOIR);
   };
 
@@ -327,8 +381,30 @@ export function dessinerMethodology(poids, { echelle = 8 } = {}) {
 // ---------------------------------------------------------------------
 export function csvResultats(retenus) {
   const notesFcf = lireEtat("fcf.notes", {});
+
+  //  Medianes des notes FCF sur les societes AFFICHEES, pas sur un
+  //  univers theorique : la coche repond a « au-dessus de qui ? », et la
+  //  seule reponse utile est « des autres lignes du tableau ».
+  //  Les societes sans note n'y participent pas -- une absence n'est ni
+  //  bonne ni mauvaise, et la compter comme zero abaisserait la mediane
+  //  pour tout le monde.
+  const medianeDe = (cle) => {
+    const v = titresTri.map((t) => (notesFcf[t.Ticker] || {})[cle])
+      .filter((x) => x != null && isFinite(x)).sort((a, b) => a - b);
+    if (!v.length) return null;
+    const m = Math.floor(v.length / 2);
+    return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+  };
+  const medianes = { n5: medianeDe("n5"), n10: medianeDe("n10") };
+
+  /** Moyenne des deux notes ; d'une seule si l'autre manque. */
+  const moyenneFcf = (ticker) => {
+    const n = notesFcf[ticker] || {};
+    const v = [n.n5, n.n10].filter((x) => x != null && isFinite(x));
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  };
   const entetes = ["Rank", "Ticker", "Sector", "Cap", ...PILIERS, "TOTAL", "Grade",
-    "FCF5Y", "FCF10Y",
+    "FCF5Y", "FCF10Y", "FCFAvg",
     "Valuation", "SweetSpot", "RiskAdjusted", "DataCoverage", "SectorRank",
     "Alerts", "AlertDetail", "Strengths", "Weaknesses"];
   const esc = (v) => {
@@ -343,6 +419,11 @@ export function csvResultats(retenus) {
       ...PILIERS.map((p) => f1(t.piliers[p])),
       f1(t.total), t.note,
       (notesFcf[t.Ticker] || {}).n5 ?? "", (notesFcf[t.Ticker] || {}).n10 ?? "",
+      (() => {
+        const n = notesFcf[t.Ticker] || {};
+        const v = [n.n5, n.n10].filter((x) => x != null && isFinite(x));
+        return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : "";
+      })(),
       t.valuation, t.sweet_spot ? "*" : "",
       f1(t.conviction), Math.round((t.couverture ?? 0) * 100),
       `${t.rang_secteur}/${t.taille_secteur}`,
