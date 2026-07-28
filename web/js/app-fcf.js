@@ -145,9 +145,11 @@ selPeriode.value = reglages.periode || "annuel";
 const zonePresets = $("#presets-fenetre");
 let fenetreChoisie = FENETRES.includes(reglages.fenetre) ? reglages.fenetre : 10;
 
+const RACCOURCIS = [3, 5, 7, 10, 15];
+
 function dessinerPresets() {
   vider(zonePresets);
-  for (const n of [3, 5, 7, 10, 15]) {
+  for (const n of RACCOURCIS) {
     const b = el("button", {
       type: "button", texte: `${n}y`,
       classe: `preset${n === fenetreChoisie ? " actif" : ""}`,
@@ -155,12 +157,19 @@ function dessinerPresets() {
     b.addEventListener("click", () => { fenetreChoisie = n; dessinerPresets(); majNote(); reafficher(); });
     zonePresets.appendChild(b);
   }
-  const autre = el("select", { classe: "preset-select", title: "Any window from 3 to 15 years" });
+  //  La liste ne reprend PAS les raccourcis : deux commandes affichant la
+  //  meme valeur -- un bouton « 10y » actif a cote d'une liste sur
+  //  « 10 years » -- laissent croire qu'elles font deux choses differentes.
+  //  Elle ne sert qu'aux durees que les raccourcis ne couvrent pas.
+  const autre = el("select", { classe: "preset-select", title: "Any other window, 3 to 15 years" });
+  autre.appendChild(el("option", { value: "", texte: RACCOURCIS.includes(fenetreChoisie) ? "other…" : `${fenetreChoisie} years` }));
   for (const n of FENETRES) {
+    if (RACCOURCIS.includes(n)) continue;
     autre.appendChild(el("option", { value: String(n), texte: `${n} years` }));
   }
-  autre.value = String(fenetreChoisie);
+  autre.value = "";
   autre.addEventListener("change", () => {
+    if (!autre.value) return;
     fenetreChoisie = Number(autre.value); dessinerPresets(); majNote(); reafficher();
   });
   zonePresets.appendChild(autre);
@@ -273,7 +282,9 @@ function dessinerComparaison() {
 
   const carte = el("section", { classe: "carte" });
   const entete = el("div", { classe: "entete-resultat" });
-  entete.appendChild(el("h2", { texte: `${dernier.lignes.length} companies · ${dernier.fenetre}-year window` }));
+  entete.appendChild(el("h2", {
+    texte: `${dernier.lignes.length} companies, all over the same ${dernier.fenetre}-year window`,
+  }));
   entete.appendChild(el("span", { classe: "taille", texte: dernier.libelleMode }));
   carte.appendChild(entete);
 
