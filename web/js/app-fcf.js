@@ -85,6 +85,47 @@ async function ajouterLot() {
 }
 
 $("#btn-lot").addEventListener("click", () => ajouterLot());
+
+// ---------------------------------------------------------------------
+// La watchlist du tableau QS, en un clic
+//
+//  La liste est extraite du tableau de bord et figee dans
+//  web/data/watchlist.json, parce que le fichier source vit a la racine
+//  du depot et n'est pas publie. Deux lignes n'y figurent pas et ne
+//  peuvent pas y figurer : Hermes et Constellation Software ne sont pas
+//  cotees aux Etats-Unis, donc ne deposent rien a la SEC. « NOVO B »,
+//  la ligne de Copenhague, est ramenee a NVO, son certificat americain.
+// ---------------------------------------------------------------------
+let watchlist = null;
+
+async function chargerWatchlist() {
+  if (watchlist) return watchlist;
+  const r = await fetch(new URL("../data/watchlist.json", import.meta.url));
+  if (!r.ok) throw new Error("watchlist.json not found");
+  watchlist = await r.json();
+  return watchlist;
+}
+
+$("#btn-watchlist").addEventListener("click", async () => {
+  const b = $("#btn-watchlist");
+  b.disabled = true;
+  try {
+    const w = await chargerWatchlist();
+    const { trouves } = await resoudreTickers(w.tickers.join(","));
+    let ajoutes = 0;
+    for (const s of trouves) if (ajouterSociete(s, true)) ajoutes++;
+    dessinerSelection();
+    vider(messages);
+    const hors = (w.horsPortee || []).map((x) => `${x.ticker} — ${x.raison}`);
+    message(messages, ajoutes ? "ok" : "info",
+      `${ajoutes} of your watchlist added.`
+      + (hors.length ? ` Out of reach, and always will be: ${hors.join(", ")} — no US listing means no SEC filings.` : ""));
+  } catch (e) {
+    message(messages, "erreur", `Could not load the watchlist: ${e.message}`);
+  } finally {
+    b.disabled = false;
+  }
+});
 $("#lot").addEventListener("keydown", (e) => { if (e.key === "Enter") ajouterLot(); });
 
 // ---------------------------------------------------------------------
@@ -376,10 +417,25 @@ function tableauSociete(l) {
   return bloc;
 }
 
-/** Recalcule l'affichage a partir des series deja telechargees. */
+/**
+ * Recalcule l'affichage a partir des series deja telechargees.
+ *
+ * Quand rien n'a encore ete telecharge, le changement de fenetre n'avait
+ * AUCUN effet visible : le bouton s'allumait, le reste de la page ne
+ * bougeait pas, et la commande passait pour cassee. Elle le dit
+ * desormais, plutot que de ne rien faire en silence.
+ */
 function reafficher() {
   enregistrerReglages();
-  if (!dernier || !dernier.brut) return;
+  if (!dernier || !dernier.brut) {
+    if (societes.length) {
+      vider(messages);
+      message(messages, "info",
+        `Window set to ${fenetreChoisie} years — press Analyse to compute it for `
+        + `${societes.length === 1 ? "this company" : `all ${societes.length} companies`}.`);
+    }
+    return;
+  }
   calculer();
   dessinerComparaison();
 }

@@ -1,0 +1,41 @@
+{
+ "tickers": [
+  "NVDA",
+  "AAPL",
+  "GOOGL",
+  "MSFT",
+  "META",
+  "ASML",
+  "V",
+  "MA",
+  "AMAT",
+  "LRCX",
+  "KLAC",
+  "ANET",
+  "NVO",
+  "BKNG",
+  "SPGI",
+  "FTNT",
+  "NOW",
+  "CME",
+  "ADBE",
+  "MCO",
+  "ICE",
+  "MSCI",
+  "CBOE",
+  "VEEV",
+  "FICO",
+  "CPRT",
+  "FDS"
+ ],
+ "horsPortee": [
+  {
+   "ticker": "HESA.F",
+   "raison": "Herm\u00e8s (Paris)"
+  },
+  {
+   "ticker": "CSU",
+   "raison": "Constellation Software (Toronto)"
+  }
+ ]
+}
