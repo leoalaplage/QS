@@ -13,111 +13,91 @@
   <nav>
     <a href="index.html">Table</a>
     <a href="chart.html" class="actif">Chart</a>
+    <a href="fcf.html">FCF</a>
   </nav>
 </header>
 
 <main>
-  <h1>Historical chart as a PNG</h1>
+  <h1>Historical chart</h1>
   <p class="intro">
-    Search companies by name or ticker, stack several metrics on one chart, and
-    read every point by hovering it. Financial metrics come from the XBRL data
-    filed with the SEC; on top of those, QS reads each company&rsquo;s earnings
-    releases to pull the operating indicators no XBRL tag carries &mdash;
-    retention rate, room nights, gross bookings, take rate, remaining performance
-    obligations &mdash; and charts them like any other metric.
+    Pick companies, add metrics, read any point by hovering it.
+    Everything comes from XBRL filings with the SEC.
   </p>
 
   <section class="carte panneau">
-    <!-- 1. Companies -------------------------------------------------- -->
-    <div class="bloc">
-      <div class="bloc-titre"><span class="etape">1</span>Companies</div>
-      <div class="champ-recherche" style="max-width:420px">
-        <input type="text" id="recherche" placeholder="Search by name or ticker&hellip;" autocomplete="off">
-        <div id="resultats-recherche" class="suggestions cache"></div>
+    <!-- Companies + metrics, side by side ------------------------------ -->
+    <div class="bloc duo">
+      <div>
+        <label for="recherche">Companies</label>
+        <div class="champ-recherche">
+          <input type="text" id="recherche" placeholder="Name or ticker&hellip;" autocomplete="off">
+          <div id="resultats-recherche" class="suggestions cache"></div>
+        </div>
+        <div id="selection" class="jetons"></div>
+        <div id="selection-vide" class="aide">
+          Try <span id="suggestions-rapides"></span>
+        </div>
       </div>
-      <div id="selection" class="jetons"></div>
-      <div id="zone-decouverte"></div>
-      <div class="ligne-actions" style="margin-top:6px">
-        <label for="profondeur-kpi" style="margin:0">Reported-KPI history</label>
-        <select id="profondeur-kpi" style="width:auto">
-          <option value="12">3 years</option>
-          <option value="20">5 years</option>
-          <option value="40" selected>10 years</option>
-          <option value="60">15 years</option>
-          <option value="80">20 years</option>
-        </select>
-      </div>
-      <div id="selection-vide" class="aide">
-        None selected &mdash; try:
-        <span id="suggestions-rapides"></span>
+      <div>
+        <label for="recherche-metrique">Metrics</label>
+        <div class="champ-recherche">
+          <input type="text" id="recherche-metrique" autocomplete="off"
+                 placeholder="Type to filter, or click to browse&hellip;">
+          <div id="resultats-metrique" class="suggestions cache"></div>
+        </div>
+        <div id="jetons-metriques" class="jetons"></div>
       </div>
     </div>
 
-    <!-- 2. Metrics & style -------------------------------------------- -->
+    <!-- Settings, one compact row -------------------------------------- -->
     <div class="bloc">
-      <div class="bloc-titre"><span class="etape">2</span>Metrics &amp; style</div>
-      <div class="champ-recherche" style="max-width:520px">
-        <input type="text" id="recherche-metrique" autocomplete="off"
-               placeholder="Add a metric &mdash; type to filter, or click to browse&hellip;">
-        <div id="resultats-metrique" class="suggestions cache"></div>
-      </div>
-      <div id="table-metriques"></div>
-      <p class="aide" id="note-axes"></p>
-    </div>
-
-    <!-- 3. Period & range --------------------------------------------- -->
-    <div class="bloc">
-      <div class="bloc-titre"><span class="etape">3</span>Period &amp; range</div>
       <div class="reglages">
         <div>
-          <label for="periode">Reporting period</label>
+          <label for="periode">Period</label>
           <select id="periode">
             <option value="annuel">Annual</option>
             <option value="trimestre">Quarterly</option>
-            <option value="ttm">TTM (trailing twelve months)</option>
+            <option value="ttm">TTM</option>
           </select>
         </div>
         <div>
-          <label for="annees">History depth</label>
+          <label for="annees">History</label>
           <div class="presets" id="presets-duree"></div>
+          <input type="number" id="annees" min="1" max="40" value="15" class="cache">
         </div>
-        <div>
-          <label for="annees">Or exactly (years)</label>
-          <input type="number" id="annees" min="1" max="40" value="15">
-        </div>
-      </div>
-      <div class="reglages" style="margin-top:14px">
         <div>
           <label for="transformation">Transform</label>
           <select id="transformation"></select>
         </div>
         <div>
-          <label for="pas-cours">Price frequency</label>
+          <label for="pas-cours">Price step</label>
           <select id="pas-cours">
             <option value="1d">Daily</option>
             <option value="1wk">Weekly</option>
             <option value="1mo" selected>Monthly</option>
-            <option value="periode">Follow the accounting period</option>
+            <option value="periode">Follow period</option>
           </select>
         </div>
         <div>
-          <label for="etiquettes">Values on chart</label>
+          <label for="etiquettes">Value labels</label>
           <select id="etiquettes">
-            <option value="auto">Auto (when readable)</option>
-            <option value="oui">Always show</option>
-            <option value="non">Never show</option>
+            <option value="auto">Auto</option>
+            <option value="oui">Always</option>
+            <option value="non">Never</option>
           </select>
-        </div>
-        <div>
-          <label>&nbsp;</label>
-          <button type="button" id="btn-reset" class="lien">Reset everything</button>
         </div>
       </div>
+      <p class="aide" id="note-axes"></p>
+      <details class="repli-inline" id="style-metriques">
+        <summary>Style each metric &mdash; chart type, averages, trend</summary>
+        <div id="table-metriques"></div>
+      </details>
     </div>
 
     <div class="ligne-actions barre-finale">
-      <button type="button" class="primaire" id="btn-generer">Generate the chart</button>
-      <button type="button" class="lien" id="btn-relais">EDGAR relay&hellip;</button>
+      <button type="button" class="primaire" id="btn-generer">Generate</button>
+      <button type="button" class="lien" id="btn-reset">Clear</button>
+      <button type="button" class="lien" id="btn-relais">Relay&hellip;</button>
       <span id="statut" class="chargement cache"><span class="rondelle"></span><span id="statut-texte"></span></span>
     </div>
 
@@ -130,8 +110,8 @@
       </div>
       <p class="aide">
         The SEC sends no CORS headers, so a static site cannot call it directly.
-        The <code>worker/</code> folder in the repository holds the relay to deploy
-        (free, ~50 lines). The URL is stored in this browser only.
+        The <code>worker/</code> folder holds the relay to deploy. The URL is
+        stored in this browser only.
       </p>
     </div>
 
@@ -140,57 +120,43 @@
 
   <section id="sorties"></section>
 
-  <section id="kpi" class="carte cache">
-    <div class="entete-resultat">
-      <h2>Key figures</h2>
-      <span class="taille" id="kpi-note"></span>
-    </div>
-    <div id="kpi-corps"></div>
-  </section>
-
-  <section class="carte">
-    <h2>How each metric is computed</h2>
+  <details class="carte repli">
+    <summary>How each metric is computed</summary>
     <p class="aide">
-      Every figure comes from XBRL tags filed with the SEC — nothing is estimated
-      or modelled. Ratios are computed period by period from the two underlying
-      series, never by mixing periods.
+      Every figure comes from XBRL tags filed with the SEC &mdash; nothing is
+      estimated or modelled. Ratios are computed period by period from the two
+      underlying series, never by mixing periods.
     </p>
     <div id="formules"></div>
-  </section>
+  </details>
 
-  <section class="carte">
-    <h2>What the data covers</h2>
+  <details class="carte repli">
+    <summary>What the data covers, and what it cannot</summary>
     <p class="aide">
-      Single source: XBRL filings with the SEC. That covers the ~10,400 companies
+      Single source: XBRL filings with the SEC &mdash; the ~10,400 companies
       listed in the United States, in both the <code>us-gaap</code> and
-      <code>ifrs-full</code> taxonomies — so foreign companies listed there are
-      included (ASML in EUR, Novo Nordisk in DKK, TSMC in TWD, SAP in EUR).
-      Figures are shown in the currency they were reported in.
-    </p>
-    <p class="aide">
-      <strong>Out of reach:</strong> a company that is not listed in the United
-      States has no SEC filings at all — Constellation Software (Toronto) or
-      Herm&egrave;s (Paris) cannot be found here, whatever you search for.
+      <code>ifrs-full</code> taxonomies. Foreign companies listed there are
+      included (ASML in EUR, Novo Nordisk in DKK, TSMC in TWD). Figures are shown
+      in the currency they were reported in. A company not listed in the US has
+      no SEC filings at all: Constellation Software or Herm&egrave;s cannot be
+      found here.
     </p>
     <p class="aide">
       <strong>Quarterly and TTM:</strong> cash-flow statements are filed
-      <em>cumulatively</em> from the start of the fiscal year (3, 6, 9 then 12
-      months). Discrete quarters are rebuilt by differencing consecutive
-      cumulative filings, and the four quarters of a year are checked against the
-      reported annual total. Where a quarter is both reported directly and
-      rebuildable, the two are compared and any disagreement is reported.
+      <em>cumulatively</em> from the start of the fiscal year. Discrete quarters
+      are rebuilt by differencing consecutive cumulative filings, and the four
+      quarters of a year are checked against the reported annual total.
     </p>
     <p class="aide">
       <strong>Comparing a quarter to a year is misleading</strong> for seasonal
-      businesses: Apple collects a large share of its cash in the December
-      quarter, so its quarterly FCF margin runs well above its annual one. Use
-      <strong>TTM</strong> when you want a figure comparable to the annual one.
+      businesses. Use <strong>TTM</strong> when you want a figure comparable to
+      the annual one.
     </p>
-  </section>
+  </details>
 </main>
 
 <footer>
-  Data source: SEC EDGAR (XBRL) &mdash; extraction derived from <code>qs_chart.py</code>.
+  Data source: SEC EDGAR (XBRL).
 </footer>
 
 <script type="module" src="js/app-chart.js"></script>

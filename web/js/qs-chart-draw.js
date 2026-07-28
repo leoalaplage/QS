@@ -353,10 +353,12 @@ export function tracer({
   };
 
   // -- grille ----------------------------------------------------------
+  //  Traits pleins et tres pales plutot que des pointillees gris moyen :
+  //  la grille doit se laisser traverser du regard, pas concurrencer les
+  //  courbes. Le zero, lui, est une information et reste marque.
   c.save();
-  c.strokeStyle = "rgba(176,176,176,0.5)";
+  c.strokeStyle = "rgba(15,23,42,0.08)";
   c.lineWidth = 0.6 * U;
-  c.setLineDash([5 * U, 3 * U]);
   for (const t of echelles[0].ticks) {
     const y = yPxAxe(t, 0);
     c.beginPath(); c.moveTo(gauche, y); c.lineTo(droite, y); c.stroke();
@@ -365,7 +367,7 @@ export function tracer({
 
   for (let i = 0; i < echelles.length; i++) {
     if (echelles[i].min < 0 && echelles[i].max > 0) {
-      c.strokeStyle = "#94a3b8"; c.lineWidth = 0.8 * U;
+      c.strokeStyle = "rgba(15,23,42,0.32)"; c.lineWidth = 0.9 * U;
       const y = yPxAxe(0, i);
       c.beginPath(); c.moveTo(gauche, y); c.lineTo(droite, y); c.stroke();
       break;
@@ -530,42 +532,46 @@ export function tracer({
   c.textAlign = "left";
 
   // -- axes ------------------------------------------------------------
-  c.strokeStyle = "#000000";
+  //  Le cadre noir a saute. Il n'apportait rien : la grille situe deja les
+  //  valeurs, et une ligne pleine autour du trace ramene l'oeil sur le
+  //  contenant au lieu du contenu. Seule reste la ligne de base, pale,
+  //  parce qu'un axe des abscisses se lit comme un sol.
+  c.strokeStyle = "rgba(15,23,42,0.18)";
   c.lineWidth = 0.8 * U;
   c.beginPath();
-  c.moveTo(gauche, haut); c.lineTo(gauche, bas); c.lineTo(droite, bas);
-  if (echelles.length > 1) { c.moveTo(droite, haut); c.lineTo(droite, bas); }
+  c.moveTo(gauche, bas); c.lineTo(droite, bas);
   c.stroke();
 
   police(10);
-  c.strokeStyle = "#475569";
   echelles.forEach((e, i) => {
     const s = uniteAxe(i);
-    c.fillStyle = echelles.length > 1 ? s.couleur : "#475569";
+    c.fillStyle = echelles.length > 1 ? s.couleur : "#64748b";
     c.textAlign = i === 0 ? "right" : "left";
     for (const t of e.ticks) {
       const y = yPxAxe(t, i);
-      c.beginPath();
-      c.moveTo(i === 0 ? gauche - 3.5 * U : droite, y);
-      c.lineTo(i === 0 ? gauche : droite + 3.5 * U, y);
-      c.stroke();
+      //  Plus de graduation dessinee : l'etiquette suffit a reperer la ligne
+      //  de grille, qui part deja d'ici.
       c.fillText(etiquetteAxe(t, s.unite, e.pas, s.devise), i === 0 ? gauche - 6 * U : droite + 6 * U, y);
     }
   });
 
-  c.fillStyle = "#475569";
+  c.fillStyle = "#64748b";
   c.textAlign = "center";
   for (const t of ticksX) {
     const x = xPx(t);
     if (x < gauche - 1 || x > droite + 1) continue;
-    c.beginPath(); c.moveTo(x, bas); c.lineTo(x, bas + 3.5 * U); c.stroke();
     c.fillText(String(t), x, bas + 12 * U);
   }
 
   // -- titre, libelles, source -----------------------------------------
+  //  Titre cale a GAUCHE, sur la meme verticale que l'axe : on lit un
+  //  graphique de gauche a droite, et un titre centre oblige a chercher son
+  //  debut. C'est aussi l'alignement du reste du site.
   police(14, true);
   c.fillStyle = "#0f172a";
-  c.fillText(titre, (gauche + droite) / 2, 16 * U);
+  c.textAlign = "left";
+  c.fillText(titre, gauche, 16 * U);
+  c.textAlign = "center";
 
   police(10);
   c.fillStyle = "#475569";

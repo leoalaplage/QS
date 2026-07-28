@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QS FCF - free cash flow consistency</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <div class="marque">QS <span>FCF</span></div>
+  <nav>
+    <a href="index.html">Table</a>
+    <a href="chart.html">Chart</a>
+    <a href="fcf.html" class="actif">FCF</a>
+  </nav>
+</header>
+
+<main>
+  <h1>Free cash flow consistency</h1>
+  <p class="intro">
+    How fast free cash flow has grown, how <em>steadily</em> it has grown, and
+    how stable the market&rsquo;s valuation of it has been &mdash; over every
+    window from 3 to 15 fiscal years.
+  </p>
+
+  <section class="carte panneau">
+    <div class="bloc">
+      <label for="recherche">Companies</label>
+      <div class="champ-recherche" style="max-width:460px">
+        <input type="text" id="recherche" placeholder="Name or ticker&hellip;" autocomplete="off">
+        <div id="resultats-recherche" class="suggestions cache"></div>
+      </div>
+      <div id="selection" class="jetons"></div>
+      <div id="selection-vide" class="aide">
+        Try <span id="suggestions-rapides"></span>
+      </div>
+    </div>
+
+    <div class="ligne-actions barre-finale">
+      <button type="button" class="primaire" id="btn-analyser">Analyse</button>
+      <button type="button" class="lien" id="btn-reset">Clear</button>
+      <span id="statut" class="chargement cache"><span class="rondelle"></span><span id="statut-texte"></span></span>
+    </div>
+
+    <div id="messages"></div>
+  </section>
+
+  <section id="sorties"></section>
+
+  <details class="carte repli">
+    <summary>How the three figures are computed</summary>
+    <p class="aide">
+      <strong>FCF</strong> is operating cash flow minus capital expenditure, per
+      fiscal year, taken from XBRL filings with the SEC. A window is only used
+      when its fiscal years are <strong>consecutive</strong>: a one-year gap
+      would distort both the growth rate and the fit without showing it.
+    </p>
+    <p class="aide">
+      <strong>CAGR</strong> &mdash; compound annual growth of FCF from the first
+      to the last year of the window. Undefined when either end is negative:
+      going from &minus;50 to +100 is a turnaround, and no annual rate describes it.
+    </p>
+    <p class="aide">
+      <strong>R&sup2;</strong> &mdash; how <em>regular</em> that growth was. A
+      least-squares line is fitted to the <strong>logarithm</strong> of FCF.
+      Compound growth is an exponential, and the logarithm straightens it, so
+      R&sup2;&nbsp;=&nbsp;1 means &ldquo;grew at exactly the same rate every
+      year&rdquo;. Two companies can share a CAGR of 12% while one has an R&sup2;
+      of 0.98 and the other 0.35 &mdash; same destination, very different ride.
+      Undefined when any year has negative FCF, which has no logarithm.
+    </p>
+    <p class="aide">
+      <strong>FCF yield CV</strong> &mdash; the coefficient of variation
+      (standard deviation over mean) of the FCF yield, itself free cash flow
+      divided by market capitalisation at each year end. This one says nothing
+      about the business and everything about its price: a low CV is a company
+      the market has valued consistently, a high CV one that has swung between
+      enthusiasm and neglect. Sample standard deviation; undefined on a negative
+      mean.
+    </p>
+  </details>
+</main>
+
+<footer>
+  Data source: SEC EDGAR (XBRL) for cash flows, market quotes for the yield.
+</footer>
+
+<script type="module" src="js/app-fcf.js"></script>
+</body>
+</html>

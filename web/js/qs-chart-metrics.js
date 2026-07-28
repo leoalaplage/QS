@@ -341,10 +341,19 @@ const socleUtilisable = (socle, actifs, k) => {
  * tout au long de la periode) par un STOCK (photo a un instant) surestime le
  * rendement des que le bilan grossit. La moyenne des deux bornes corrige
  * l'essentiel du biais ; a defaut d'anteriorite on garde la valeur courante.
+ *
+ * UNE MOYENNE A CHEVAL SUR UN CHANGEMENT DE SIGNE EST REFUSEE. Uber cloture
+ * 2018 avec des fonds propres de -7,6 milliards et 2019 avec +14,2 : leur
+ * moyenne vaut 3,3 milliards, un nombre qui ne correspond a aucun capital
+ * ayant jamais existe. Le ROE calcule dessus donnait -250 %, franchissant
+ * sans encombre le garde-fou du socle -- lequel n'examinait que la moyenne,
+ * deja positive. Une base de capital doit l'etre AUX DEUX BORNES.
  */
 function moyenneBilan(valeurCourante, serie, k) {
   const precedent = ouNull(serie, cleAnPrecedent(k));
-  return precedent === null ? valeurCourante : (valeurCourante + precedent) / 2;
+  if (precedent === null) return valeurCourante;
+  if (valeurCourante <= 0 || precedent <= 0) return null;
+  return (valeurCourante + precedent) / 2;
 }
 
 /**

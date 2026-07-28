@@ -13,8 +13,6 @@ import {
 import { tracer, etiquetteValeur, familleUnite, COULEURS, TYPES_GRAPHE } from "./qs-chart-draw.js";
 import { workerUrl, definirWorkerUrl } from "./qs-settings.js";
 import { lireEtat, ecrireEtat, effacerEtat } from "./qs-etat.js";
-import { ficheKpi } from "./qs-kpi.js";
-import { decouvrir, dejaDecouvert, serieKpi } from "./qs-kpi-decouverte.js";
 import { METRIQUES_VALO, besoinDeCours, serieValo } from "./qs-prix.js";
 import {
   $, el, vider, message, statut, respirer, telechargerCanvas, copierCanvas,
@@ -24,19 +22,25 @@ const messages = $("#messages");
 const sorties = $("#sorties");
 const act = statut($("#statut"), $("#statut-texte"));
 
-// Etat restaure : passer de Chart a Table et revenir ne doit rien effacer.
+//  La page repart PROPRE a chaque chargement.
+//
+//  Les societes et les metriques etaient restaurees d'une visite a l'autre.
+//  A l'usage, on retrouvait une selection accumulee au fil du temps, dont on
+//  ne savait plus ce qu'elle contenait ni pourquoi, et il fallait la vider a
+//  la main avant de pouvoir regarder autre chose. Seuls les REGLAGES
+//  d'affichage -- periode, profondeur, transformation -- survivent : ce sont
+//  des preferences, pas des donnees.
 const DEFAUTS = {
-  societes: [], metriques: [], periode: "annuel", annees: 15,
+  periode: "annuel", annees: 15,
   transformation: "aucune", etiquettes: "auto", pasCours: "1mo",
 };
 const sauve = lireEtat("chart", DEFAUTS);
 
-const societes = Array.isArray(sauve.societes) ? sauve.societes : [];
-const metriques = Array.isArray(sauve.metriques) ? sauve.metriques : [];
+const societes = [];
+const metriques = [];
 
 function enregistrer() {
   ecrireEtat("chart", {
-    societes, metriques,
     periode: $("#periode").value,
     annees: Number($("#annees").value) || 15,
     transformation: $("#transformation").value,
@@ -55,11 +59,6 @@ function enregistrer() {
 //  Rate » n'avait plus de sens. Le champ reprend le comportement de la
 //  recherche de societes, juste au-dessus -- meme apparence, meme clavier.
 let catalogue = [];
-//  `lireEtat` fusionne le defaut par etalement d'objet : lui passer `false`
-//  renvoyait `{}`, un objet donc vrai, et les lignes comptables
-//  s'affichaient alors qu'elles devaient rester de cote. L'etat se range
-//  dans un objet, comme les autres.
-let montrerComptables = lireEtat("chart.kpiComptables", { actif: false }).actif === true;
 
 /**
  * Reconstruit la liste plate des metriques proposables.
@@ -78,27 +77,6 @@ function construireCatalogue() {
   // besoin d'un cours, donc d'une source exterieure. Groupe a part.
   for (const [cle, d] of Object.entries(METRIQUES_VALO)) {
     catalogue.push({ cle: `valo:${cle}`, nom: d.nom, groupe: "Valuation (needs share price)" });
-  }
-  for (const s of societes) {
-    const d = dejaDecouvert(s.ticker);
-    if (!d) continue;
-    for (const k of d.ops || []) {
-      catalogue.push({
-        cle: k.cle, nom: k.nom, groupe: `Reported by ${s.ticker}`,
-        vedette: k.vedette, detail: `${k.points.length}q`,
-      });
-    }
-    //  Les lignes de compte relues dans le communique ne sont proposees que
-    //  sur demande : elles existent deja plus haut, tirees du XBRL, avec un
-    //  historique bien plus long.
-    if (montrerComptables) {
-      for (const k of d.finance || []) {
-        catalogue.push({
-          cle: k.cle, nom: k.nom, groupe: `${s.ticker} — accounting lines (already above)`,
-          detail: `${k.points.length}q`,
-        });
-      }
-    }
   }
 }
 
@@ -214,11 +192,9 @@ function dessinerSelections() {
     }));
   }
 
+  dessinerJetonsMetriques();
   dessinerTableMetriques();
-  //  Les indicateurs proposables dependent des societes retenues : le
-  //  catalogue se refait a chaque changement de selection.
   construireCatalogue();
-  if (typeof dessinerZoneDecouverte === "function") dessinerZoneDecouverte();
 
   // Au-dela de deux familles d'unites, plus rien ne peut etre gradue honnetement.
   const familles = [...new Set(metriques.filter((m) => m.visible).map((m) => familleUnite(m.unite)))];
@@ -238,6 +214,28 @@ function dessinerSelections() {
   }
 }
 
+/**
+ * Les metriques retenues, en pastilles, exactement comme les societes.
+ *
+ * Le reglage fin de chacune -- type de trace, moyennes, tendance -- vit dans
+ * un volet replie juste en dessous. Il etait auparavant deploye en
+ * permanence : quatre colonnes de commandes pour chaque metrique occupaient
+ * plus de place que le graphique lui-meme.
+ */
+function dessinerJetonsMetriques() {
+  const zone = $("#jetons-metriques");
+  vider(zone);
+  $("#style-metriques").classList.toggle("cache", metriques.length === 0);
+  metriques.forEach((m, i) => {
+    zone.appendChild(jeton({
+      titre: m.nom, entree: m,
+      onCouleur: (c) => { m.couleur = c; dessinerTableMetriques(); rafraichir(); },
+      onBascule: () => { m.visible = !m.visible; dessinerSelections(); rafraichir(); },
+      onRetrait: () => { metriques.splice(i, 1); dessinerSelections(); rafraichir(); },
+    }));
+  });
+}
+
 const SUPERPOSITIONS = [
   ["moyenne", "Avg", "Average over the displayed window"],
   ["mediane", "Median", "Median over the displayed window"],
@@ -254,7 +252,7 @@ function dessinerTableMetriques() {
   const zone = $("#table-metriques");
   vider(zone);
   if (!metriques.length) {
-    zone.appendChild(el("p", { classe: "aide", texte: "No metric yet — pick one above and press Add." }));
+    zone.appendChild(el("p", { classe: "aide", texte: "No metric yet." }));
     return;
   }
 
@@ -367,11 +365,6 @@ function ajouterMetrique(cle) {
   }
   let d = toutesLesMetriques()[cle];
   if (!d && cle.startsWith("valo:")) d = METRIQUES_VALO[cle.slice(5)];
-  if (!d && cle.startsWith("kpi:")) {
-    const { kpi } = serieKpi(cle);
-    if (!kpi) return;
-    d = { nom: `${kpi.ticker} · ${kpi.nom}`, unite: kpi.unite, graph: "line" };
-  }
   if (!d) return;
   metriques.push({
     cle, nom: d.nom, unite: d.unite, visible: true,
@@ -592,7 +585,6 @@ async function generer({ silencieux = false } = {}) {
   const soc = societes.filter((s) => s.visible);
   const met = metriques.filter((m) => m.visible);
   if (!soc.length || !met.length) {
-    $("#kpi").classList.add("cache");
     if (!silencieux) {
       message(messages, "erreur", !soc.length
         ? "Pick at least one company (search by name or ticker)."
@@ -619,9 +611,6 @@ async function generer({ silencieux = false } = {}) {
           tags: [], devises: new Set(), formes: new Set(),
           derives: [], incoherences: [], points: 0,
         };
-        // Un KPI decouvert est lu dans les communiques, pas dans le XBRL :
-        // il n'a qu'une seule serie, trimestrielle, et ne concerne que la
-        // societe dont il provient.
         let serie;
         if (m.cle.startsWith("valo:")) {
           try {
@@ -647,10 +636,6 @@ async function generer({ silencieux = false } = {}) {
             serie = {};
             rapport.incoherences.push(`share price unavailable — ${e.message}`);
           }
-        } else if (m.cle.startsWith("kpi:")) {
-          if (m.cle.split(":")[1] !== s.ticker) continue;
-          serie = serieKpi(m.cle).serie;
-          rapport.formes.add("8-K EX-99.1");
         } else {
           serie = construireSerie(facts, m.cle, mode, cache, rapport);
         }
@@ -769,7 +754,6 @@ async function generer({ silencieux = false } = {}) {
   if (reserves.length) message(messages, "info", "Chart generated, with caveats:", reserves);
 
   sorties.appendChild(blocGraphe(rendu, series, rapports, mode));
-  await dessinerKpi(soc);
   if (!silencieux) sorties.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -935,224 +919,4 @@ dessinerSelections();
 if (societes.length) rafraichir();
 
 
-// ---------------------------------------------------------------------
-// Fiche KPI : une colonne par societe, une ligne par indicateur
-// ---------------------------------------------------------------------
-async function dessinerKpi(soc) {
-  const section = $("#kpi");
-  const corps = $("#kpi-corps");
-  vider(corps);
-  if (!soc.length) { section.classList.add("cache"); return; }
-
-  const fiches = [];
-  for (const s of soc) {
-    try {
-      fiches.push({ societe: s, fiche: ficheKpi(await factsDe(s)) });
-    } catch { /* une societe illisible ne doit pas vider le tableau */ }
-  }
-  if (!fiches.length) { section.classList.add("cache"); return; }
-
-  const table = el("table", { classe: "kpi-table" });
-  const entete = el("tr");
-  entete.appendChild(el("th", { texte: "" }));
-  for (const f of fiches) {
-    const th = el("th");
-    th.appendChild(el("div", { classe: "tk", texte: f.societe.ticker }));
-    th.appendChild(el("div", { classe: "nm", texte: f.fiche.devise || "" }));
-    // Les indicateurs operationnels du MD&A ne sont pas balises en XBRL :
-    // on ne peut pas les calculer, on renvoie donc au document source.
-    th.appendChild(el("a", {
-      classe: "lien-mda",
-      href: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${f.societe.cik}`
-        + "&type=10-K&dateb=&owner=include&count=10",
-      target: "_blank", rel: "noopener",
-      texte: "MD&A ↗",
-      title: `Open ${f.societe.ticker} 10-K filings on EDGAR — operating KPIs live in the MD&A section`,
-    }));
-    entete.appendChild(th);
-  }
-  table.appendChild(entete);
-
-  const modele = fiches[0].fiche.lignes;
-  modele.forEach((ligneModele, idx) => {
-    if (ligneModele.groupe) {
-      const tr = el("tr", { classe: "groupe" });
-      const td = el("td", { texte: ligneModele.groupe, colspan: String(fiches.length + 1) });
-      tr.appendChild(td);
-      table.appendChild(tr);
-      return;
-    }
-    const tr = el("tr");
-    const tdNom = el("td", { classe: "kpi-nom" });
-    tdNom.appendChild(el("span", { texte: ligneModele.nom }));
-    tr.appendChild(tdNom);
-
-    for (const f of fiches) {
-      const l = f.fiche.lignes[idx];
-      const td = el("td", { classe: "kpi-val" });
-      if (!l || l.valeur === null || l.valeur === undefined) {
-        td.appendChild(el("span", { classe: "vide", texte: "—" }));
-      } else {
-        td.appendChild(el("div", {
-          classe: "v", texte: etiquetteValeur(l.valeur, l.unite, f.fiche.devise || "USD"),
-        }));
-        const bas = [];
-        if (l.base === "FY") bas.push("FY only");
-        if (l.cagr) {
-          for (const n of [3, 5, 10]) {
-            if (l.cagr[n] !== null && l.cagr[n] !== undefined) {
-              bas.push(`${n}y ${l.cagr[n] >= 0 ? "+" : ""}${l.cagr[n].toFixed(1)}%`);
-            }
-          }
-        }
-        if (l.variation) {
-          for (const n of [3, 5]) {
-            if (l.variation[n] !== null && l.variation[n] !== undefined) {
-              bas.push(`${n}y ${l.variation[n] >= 0 ? "+" : ""}${l.variation[n].toFixed(1)}%`);
-            }
-          }
-        }
-        if (bas.length) td.appendChild(el("div", { classe: "sous", texte: bas.join("  ·  ") }));
-      }
-      tr.appendChild(td);
-    }
-    table.appendChild(tr);
-  });
-
-  corps.appendChild(table);
-  corps.appendChild(el("p", {
-    classe: "aide", style: "margin-top:12px",
-    texte: "Flows are TTM (four consecutive quarters); balance-sheet items are taken at the latest "
-      + "period end. \"FY only\" marks a company that files no quarterly report, so its figure is the "
-      + "last full fiscal year. The small line under a value shows the 3, 5 and 10-year CAGR computed "
-      + "on annual data — for the share count it is the total change, which is what dilution means. "
-      + "Anything that depends on the share price (market cap, EV/EBIT, P/FCF, FCF yield) is absent: "
-      + "SEC filings do not carry it.",
-  }));
-
-  const periodes = [...new Set(fiches.map((f) => f.fiche.periode).filter(Boolean))];
-  $("#kpi-note").textContent = periodes.length ? `latest TTM period: ${periodes.join(", ")}` : "";
-  section.classList.remove("cache");
-}
-
-
-// ---------------------------------------------------------------------
-// Decouverte des KPI publies : marche pour n'importe quelle societe
-//
-//  Aucune regle ecrite a la main. On lit les derniers communiques de
-//  resultats avec des motifs generiques, et on ne garde que ce qui revient
-//  d'un trimestre a l'autre -- un vrai indicateur est publie chaque
-//  trimestre, une phrase de circonstance non. Les KPI retenus rejoignent
-//  le menu des metriques et se tracent comme n'importe quelle autre.
-// ---------------------------------------------------------------------
-function dessinerZoneDecouverte() {
-  const zone = $("#zone-decouverte");
-  vider(zone);
-  if (!societes.length) return;
-
-  const ligne = el("div", { classe: "ligne-actions", style: "margin-top:10px" });
-  for (const s of societes) {
-    const deja = dejaDecouvert(s.ticker);
-    const n = deja ? (deja.ops || []).length : 0;
-    const b = el("button", {
-      type: "button",
-      texte: deja ? `${s.ticker}: ${n} operating KPI${n === 1 ? "" : "s"}` : `Find ${s.ticker} reported KPIs`,
-      title: "Read the last earnings releases and pull out the indicators the company itself publishes",
-    });
-    b.addEventListener("click", () => lancerDecouverte(s, b));
-    ligne.appendChild(b);
-  }
-  zone.appendChild(ligne);
-
-  const explores = societes.map((s) => [s, dejaDecouvert(s.ticker)]).filter(([, d]) => d);
-  if (!explores.length) return;
-
-  //  Rendre compte du tri, pas seulement de son resultat. Le nombre de
-  //  series ecartees et de doublons comptables mis de cote est la seule
-  //  facon de voir si le filtre est trop large ou trop etroit.
-  const bilan = el("div", { classe: "bilan-kpi" });
-  for (const [s, d] of explores) {
-    const t = d.tri || {};
-    const l = el("div", { classe: "bilan-ligne" });
-    l.appendChild(el("b", { texte: s.ticker }));
-    l.appendChild(el("span", {
-      texte: `${(d.ops || []).length} operating · ${(d.finance || []).length} accounting `
-        + `· ${t.bruit || 0} discarded`
-        + (t.fusions ? ` · ${t.fusions} wording variant${t.fusions === 1 ? "" : "s"} merged` : "")
-        + `  —  read from ${d.depots} earnings releases (${d.periode || "?"})`,
-    }));
-    bilan.appendChild(l);
-  }
-  zone.appendChild(bilan);
-
-  const totalFin = explores.reduce((n, [, d]) => n + (d.finance || []).length, 0);
-  if (totalFin) {
-    const cases = el("div", { classe: "cases", style: "margin-top:8px" });
-    const lab = el("label");
-    const c = el("input", { type: "checkbox" });
-    c.checked = montrerComptables;
-    c.addEventListener("change", () => {
-      montrerComptables = c.checked;
-      ecrireEtat("chart.kpiComptables", { actif: montrerComptables });
-      construireCatalogue();
-    });
-    lab.appendChild(c);
-    lab.appendChild(el("span", {
-      texte: `Also offer the ${totalFin} accounting lines re-read from the releases`
-        + " (revenue, net income, margins — already available above, with far more history)",
-    }));
-    cases.appendChild(lab);
-    zone.appendChild(cases);
-  }
-
-  zone.appendChild(el("p", {
-    classe: "aide",
-    texte: "Operating KPIs are what the company publishes and no XBRL tag carries — retention, "
-      + "bookings, take rate, remaining performance obligations. They are read from the text of the "
-      + "quarterly release, so they only exist quarterly, and each value keeps the sentence it came from.",
-  }));
-}
-
-async function lancerDecouverte(s, bouton) {
-  bouton.disabled = true;
-  const avant = bouton.textContent;
-  bouton.textContent = `Reading ${s.ticker}…`;
-  try {
-    const trimestres = Number($("#profondeur-kpi").value) || 40;
-    const res = await decouvrir(s.ticker, s.cik, {
-      trimestres, forcer: true, surAvancement: (t) => act.montrer(t),
-    });
-    act.cacher();
-    vider(messages);
-    const t = res.tri || {};
-    if (!res.ops.length && !res.finance.length) {
-      message(messages, "info",
-        `No recurring indicator found for ${s.ticker} over its last ${res.depots} earnings releases. `
-        + "Either the company publishes no release in sentence form — several put their figures in "
-        + "tables only — or it words them in a way the generic patterns do not catch.");
-    } else if (!res.ops.length) {
-      message(messages, "info",
-        `${s.ticker}: nothing operating found. The ${res.finance.length} recurring figures in its `
-        + "releases are all accounting lines already available above, from XBRL, with more history.");
-    } else {
-      message(messages, "ok",
-        `${s.ticker}: ${res.ops.length} operating KPI${res.ops.length === 1 ? "" : "s"} kept from `
-        + `${res.depots} earnings releases (${res.periode || "?"}). Set aside: ${res.finance.length} `
-        + `accounting lines already available from XBRL, ${t.bruit || 0} malformed labels, `
-        + `${res.rejetes.length} one-off figures`
-        + (t.fusions ? `, and ${t.fusions} wording variant${t.fusions === 1 ? "" : "s"} merged into an existing series` : "")
-        + ". Type in the metric field above to add them.");
-    }
-    construireCatalogue();
-    dessinerZoneDecouverte();
-  } catch (e) {
-    act.cacher();
-    message(messages, "erreur", `${s.ticker}: ${e.message}`);
-    bouton.textContent = avant;
-  } finally {
-    bouton.disabled = false;
-  }
-}
-
 construireCatalogue();
-dessinerZoneDecouverte();

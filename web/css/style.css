@@ -230,25 +230,73 @@ details.options > div { padding-top: 16px; }
 .suggestions .etoile { color: #d97706; margin-right: 6px; font-size: 12px; }
 .suggestions button .nm { margin-left: 8px; }
 
-/* -- bilan du tri des indicateurs publies ----------------------------- */
-.bilan-kpi {
-  margin-top: 10px;
-  border: 1px solid var(--bord);
-  border-radius: 8px;
-  overflow: hidden;
+/* -- page FCF --------------------------------------------------------- */
+.resultat-fcf + .resultat-fcf { margin-top: 18px; }
+.table-scroll { overflow-x: auto; }
+.tbl-fcf {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
-.bilan-ligne {
-  display: flex;
-  gap: 10px;
-  align-items: baseline;
-  padding: 7px 12px;
-  font-size: 12.5px;
+.tbl-fcf th {
+  text-align: right;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--texte-faible);
+  font-weight: 700;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--bord);
+  white-space: nowrap;
+}
+.tbl-fcf th:first-child, .tbl-fcf th:nth-child(2) { text-align: left; }
+.tbl-fcf td {
+  text-align: right;
+  padding: 5px 10px;
+  border-bottom: 1px solid #f1f4f8;
+  white-space: nowrap;
+}
+.tbl-fcf td.fenetre { text-align: left; font-weight: 700; }
+.tbl-fcf td.menu { text-align: left; color: var(--texte-faible); font-size: 12px; }
+.tbl-fcf tr.vide-ligne td { opacity: .45; }
+.tbl-fcf tr:hover td { outline: 1px solid rgba(37, 99, 235, .18); outline-offset: -1px; }
+
+/* -- deux colonnes : societes | metriques ----------------------------- */
+.duo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 720px) { .duo { grid-template-columns: 1fr; } }
+
+/* -- sections repliees : le detail ne s'impose pas -------------------- */
+.repli > summary,
+.repli-inline > summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--texte-doux);
-  border-bottom: 1px solid #eef1f5;
-  background: #fbfcfe;
+  list-style: none;
+  user-select: none;
 }
-.bilan-ligne:last-child { border-bottom: none; }
-.bilan-ligne b { color: var(--texte); font-size: 13px; min-width: 52px; }
+.repli > summary::-webkit-details-marker,
+.repli-inline > summary::-webkit-details-marker { display: none; }
+.repli > summary::before,
+.repli-inline > summary::before {
+  content: "▸";
+  display: inline-block;
+  width: 14px;
+  color: var(--texte-faible);
+  transition: transform .12s;
+}
+.repli[open] > summary::before,
+.repli-inline[open] > summary::before { transform: rotate(90deg); }
+.repli > summary:hover, .repli-inline > summary:hover { color: var(--texte); }
+.repli > *:not(summary) { margin-top: 14px; }
+.repli-inline { margin-top: 14px; }
+.repli-inline > summary { font-size: 12.5px; font-weight: 500; }
+.repli-inline > *:not(summary) { margin-top: 10px; }
 
 /* -- jetons de selection ---------------------------------------------- */
 .jetons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
