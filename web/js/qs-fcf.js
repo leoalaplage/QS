@@ -166,6 +166,9 @@ export function fenetre(fcf, rende, nbAnnees, parAn = 1) {
     cv: stat ? stat.cv : null,
     moyenneRendement: stat ? stat.moyenne : null,
     negatif: pts.some((p) => p.val <= 0),
+    //  Les periodes qui empechent la regression, nommees. Une case vide
+    //  qui n'explique pas ce qui la vide passe pour une panne.
+    negatifs: pts.filter((p) => p.val <= 0).map((p) => ({ cle: p.cle, val: p.val })),
     dernier: pts[pts.length - 1],
     valeurs: pts,
   };

@@ -351,8 +351,16 @@ function dessinerComparaison() {
       const c = cellule(l, col);
       const td = el("td", { classe: col.texte ? (col.discret ? "menu" : "fenetre") : "" , texte: c.texte });
       if (c.fond != null) td.setAttribute("style", teinte(c.fond));
-      if (col.cle === "r2" && l.croissanceAjustee != null) {
-        td.title = `Fitted growth ${pourcent(l.croissanceAjustee)} per year`;
+      if (col.cle === "r2") {
+        if (l.croissanceAjustee != null) {
+          td.title = `Fitted growth ${pourcent(l.croissanceAjustee)} per year`;
+        } else if (l.negatifs && l.negatifs.length) {
+          //  Nommer l'exercice fautif : « Booking 2020 » se comprend d'un
+          //  coup d'oeil, « negative free cash flow » se cherche.
+          const q = l.negatifs.map((x) => `${x.cle} (${montant(x.val, l.devise)})`).join(", ");
+          td.title = `No R²: free cash flow was negative in ${q}, and a negative number has no `
+            + "logarithm. Shorten the window to exclude it.";
+        }
       }
       if (col.cle === "cagr" && l.cagr == null && l.negatif) td.title = "Negative FCF at one end";
       ligne.appendChild(td);
@@ -460,7 +468,7 @@ function calculer() {
       fcf: f.dernier ? f.dernier.val : null,
       cagr: f.cagr, r2: f.r2, cv: f.cv, rende: f.moyenneRendement,
       croissanceAjustee: f.croissanceAjustee, negatif: f.negatif,
-      refus: f.refus || null, alerte: b.alerte, toutes,
+      refus: f.refus || null, negatifs: f.negatifs || [], alerte: b.alerte, toutes,
     });
   }
   dernier.lignes = lignes;
