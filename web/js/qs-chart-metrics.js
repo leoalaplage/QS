@@ -30,7 +30,21 @@ export const BASE = {
   gross_profit: {
     nom: "Gross profit", cat: "Income statement",
     unite: "money", graph: "bar",
-    tags: [[G, "GrossProfit"], [I, "GrossProfit"]] },
+    tags: [[G, "GrossProfit"], [I, "GrossProfit"]],
+    //  Treize des vingt-sept societes suivies ne declarent aucun
+    //  « GrossProfit » -- Alphabet, Meta, Visa, Mastercard, S&P Global --
+    //  mais publient chiffre d'affaires et cout des ventes. La marge brute
+    //  etait donc dans leurs comptes sans que le site sache la montrer.
+    secours: {
+      libelle: "revenue - cost of revenue",
+      besoins: ["revenue", "cost_revenue"],
+      calc: (s) => {
+        const r = {};
+        for (const k of Object.keys(s.revenue)) {
+          if (k in s.cost_revenue) r[k] = s.revenue[k] - s.cost_revenue[k];
+        }
+        return r;
+      } } },
   operating_income: {
     nom: "Operating income", cat: "Income statement",
     unite: "money", graph: "bar",
@@ -44,12 +58,20 @@ export const BASE = {
   rd: {
     nom: "R&D expense", cat: "Income statement",
     unite: "money", graph: "bar",
-    tags: [[G, "ResearchAndDevelopmentExpense"], [I, "ResearchAndDevelopmentExpense"]] },
+    //  Les editeurs de logiciels emploient massivement la variante
+    //  « ...SoftwareExcludingAcquiredInProcessCost » : Adobe y a 51
+    //  exercices et zero sous le tag standard, ce qui la privait
+    //  entierement de sa recherche et developpement.
+    tags: [[G, "ResearchAndDevelopmentExpense"],
+           [G, "ResearchAndDevelopmentExpenseSoftwareExcludingAcquiredInProcessCost"],
+           [G, "ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"],
+           [I, "ResearchAndDevelopmentExpense"]] },
   interest_expense: {
     nom: "Interest expense", cat: "Income statement",
     unite: "money", graph: "bar", menu: false,
     tags: [[G, "InterestExpense"], [G, "InterestExpenseDebt"],
-           [G, "InterestAndDebtExpense"], [I, "FinanceCosts"], [I, "InterestExpense"]] },
+           [G, "InterestAndDebtExpense"], [G, "InterestExpenseNonoperating"],
+           [G, "InterestExpenseBorrowings"], [I, "FinanceCosts"], [I, "InterestExpense"]] },
   sbc: {
     nom: "Stock-based compensation (SBC)", cat: "Income statement",
     // une charge se lit en valeur absolue : certains emetteurs la taguent
@@ -62,12 +84,36 @@ export const BASE = {
   cost_revenue: {
     nom: "Cost of revenue", cat: "Income statement",
     unite: "money", graph: "bar", menu: false,
-    tags: [[G, "CostOfRevenue"], [G, "CostOfGoodsAndServicesSold"], [I, "CostOfSales"]] },
+    tags: [[G, "CostOfRevenue"], [G, "CostOfGoodsAndServicesSold"],
+           [G, "CostOfGoodsSold"], [G, "CostOfServices"], [I, "CostOfSales"]] },
+  gna: {
+    nom: "G&A expense", cat: "Income statement",
+    unite: "money", graph: "bar", menu: false,
+    tags: [[G, "GeneralAndAdministrativeExpense"]] },
+  selling: {
+    nom: "Selling & marketing expense", cat: "Income statement",
+    unite: "money", graph: "bar", menu: false,
+    tags: [[G, "SellingAndMarketingExpense"], [G, "MarketingExpense"],
+           [G, "SellingExpense"]] },
   sga: {
     nom: "SG&A expense", cat: "Income statement",
     unite: "money", graph: "bar", menu: false,
     tags: [[G, "SellingGeneralAndAdministrativeExpense"],
-           [I, "SellingGeneralAndAdministrativeExpense"]] },
+           [I, "SellingGeneralAndAdministrativeExpense"]],
+    //  Quinze societes sur vingt-sept separent commercial et administratif
+    //  au lieu de publier un agregat. On les additionne, mais UNIQUEMENT
+    //  quand les deux existent : la seule ligne administrative, prise pour
+    //  un SG&A complet, sous-estimerait les frais de structure.
+    secours: {
+      libelle: "G&A + selling & marketing",
+      besoins: ["gna", "selling"],
+      calc: (s) => {
+        const r = {};
+        for (const k of Object.keys(s.gna)) {
+          if (k in s.selling) r[k] = s.gna[k] + s.selling[k];
+        }
+        return r;
+      } } },
   income_tax: {
     nom: "Income tax expense", cat: "Income statement",
     unite: "money", graph: "bar", menu: false,

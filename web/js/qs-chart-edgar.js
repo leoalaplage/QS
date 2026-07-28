@@ -636,6 +636,34 @@ export function construireSerie(facts, cle, mode, cache = {}, rapport = null) {
   let serie;
   if (cle in BASE) {
     serie = serieBase(facts, cle, mode, rap);
+
+    //  SECOURS : reconstituer un poste que la societe ne publie pas tel quel.
+    //
+    //  Beaucoup de societes de services ne declarent aucun « GrossProfit » --
+    //  Alphabet, Meta, Visa, Mastercard, S&P Global, treize sur nos
+    //  vingt-sept -- mais publient bien leur chiffre d'affaires et leur cout
+    //  des ventes. La marge brute existait donc dans leurs comptes sans que
+    //  le site sache la montrer. De meme, celles qui separent les frais
+    //  commerciaux des frais administratifs n'ont pas de tag SG&A combine.
+    //
+    //  Le secours ne REMPLACE jamais une valeur publiee : il ne comble que
+    //  les periodes vides, et seulement si tous ses composants existent.
+    const d = BASE[cle];
+    if (d.secours) {
+      const sous = {};
+      for (const b of d.secours.besoins) sous[b] = construireSerie(facts, b, mode, cache, rap);
+      const calcule = d.secours.calc(sous);
+      const combles = [];
+      for (const [k, v] of Object.entries(calcule)) {
+        if (k in serie || v == null || !isFinite(v)) continue;
+        serie[k] = v;
+        combles.push(k);
+      }
+      if (combles.length) {
+        rap.derives.push(...combles);
+        rap.formes.add(`${combles.length} period(s) rebuilt: ${d.secours.libelle}`);
+      }
+    }
   } else {
     const d = DERIVE[cle];
     // Certaines derivees doivent etre calculees TRIMESTRE par TRIMESTRE puis
