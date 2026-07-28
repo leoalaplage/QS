@@ -74,6 +74,44 @@ export class Doc {
     }
   }
 
+  /**
+   * Part de camembert, angles en RADIANS, zero a midi et sens horaire.
+   *
+   * Un camembert se lit depuis midi : c'est la convention de tous les
+   * rapports financiers, et l'oeil y cherche la plus grosse part en
+   * premier. L'API du canevas, elle, part de trois heures -- d'ou le
+   * quart de tour retire ici plutot qu'a chaque appel.
+   */
+  part(cx, cy, rayon, debut, fin, { rayonInterne = 0 } = {}) {
+    if (!this.dessine) return;
+    const c = this.ctx;
+    const a0 = debut - Math.PI / 2, a1 = fin - Math.PI / 2;
+    c.beginPath();
+    if (rayonInterne > 0) {
+      c.arc(this.px(cx), this.px(cy), this.px(rayon), a0, a1);
+      c.arc(this.px(cx), this.px(cy), this.px(rayonInterne), a1, a0, true);
+    } else {
+      c.moveTo(this.px(cx), this.px(cy));
+      c.arc(this.px(cx), this.px(cy), this.px(rayon), a0, a1);
+    }
+    c.closePath();
+    c.fillStyle = this.couleurFond;
+    c.fill();
+    c.strokeStyle = "#ffffff";
+    c.lineWidth = this.px(0.35);
+    c.stroke();
+  }
+
+  /** Disque plein, pour les pastilles de legende. */
+  disque(cx, cy, rayon) {
+    if (!this.dessine) return;
+    const c = this.ctx;
+    c.beginPath();
+    c.arc(this.px(cx), this.px(cy), this.px(rayon), 0, Math.PI * 2);
+    c.fillStyle = this.couleurFond;
+    c.fill();
+  }
+
   ligne(x1, y1, x2, y2, { couleur = null, epaisseur = null } = {}) {
     if (!this.dessine) return;
     const c = this.ctx;

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QS Portfolio - one-page A4 report</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <div class="marque">QS <span>Portfolio</span></div>
+  <nav>
+    <a href="index.html">Table</a>
+    <a href="chart.html">Chart</a>
+    <a href="fcf.html">FCF</a>
+    <a href="portfolio.html" class="actif">Portfolio</a>
+  </nav>
+</header>
+
+<main>
+  <h1>Portfolio report</h1>
+  <p class="intro">
+    Paste your holdings and get a one-page A4 PNG: allocation, sectors, geography,
+    market-cap breakdown, weighted fundamentals and, if you give a cost basis,
+    performance. Fundamentals come from XBRL filings with the SEC.
+  </p>
+
+  <section class="carte panneau">
+    <div class="bloc">
+      <label for="saisie">Holdings</label>
+      <textarea id="saisie" rows="9" spellcheck="false"
+        placeholder="One line per position. A header row is optional — columns are detected.
+
+AAPL, 120, 155.20
+MSFT, 40, 310.00
+GOOGL, 65
+
+Accepted: ticker + shares (+ average cost), or ticker + weight%.
+Tabs, commas or semicolons all work — paste straight from a spreadsheet."></textarea>
+      <div class="ligne-actions">
+        <button type="button" id="btn-exemple" class="lien">Load my QS watchlist, equally weighted</button>
+      </div>
+      <div id="apercu-saisie" class="aide"></div>
+    </div>
+
+    <div class="bloc">
+      <div class="reglages">
+        <div>
+          <label for="titre">Report title</label>
+          <input type="text" id="titre" value="Portfolio" autocomplete="off">
+        </div>
+        <div>
+          <label for="devise">Reporting currency</label>
+          <select id="devise">
+            <option value="USD" selected>USD</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </div>
+      </div>
+      <p class="aide">
+        Positions quoted in another currency are converted at nothing &mdash; they are
+        reported in their own currency and flagged, rather than mixed at a rate the
+        site does not have.
+      </p>
+    </div>
+
+    <div class="ligne-actions barre-finale">
+      <button type="button" class="primaire" id="btn-generer">Build the report</button>
+      <button type="button" class="lien" id="btn-reset">Clear</button>
+      <span id="statut" class="chargement cache"><span class="rondelle"></span><span id="statut-texte"></span></span>
+    </div>
+
+    <div id="messages"></div>
+  </section>
+
+  <section id="sorties"></section>
+
+  <details class="carte repli">
+    <summary>How the weighted figures are built</summary>
+    <p class="aide">
+      A portfolio has no gross margin &mdash; its holdings do. Every aggregate is a
+      <strong>weighted average by position size</strong>, and the weights are
+      renormalised over the lines that actually report the figure. A holding with no
+      published gross margin &mdash; Visa, which declares no cost of revenue &mdash;
+      drops out of that average instead of dragging it down, and the coverage is
+      printed whenever it is below 100 % of the book.
+    </p>
+    <p class="aide">
+      Valuation ratios are weighted by <strong>value</strong>, never by line count:
+      a 1 % position must not weigh as much as a 30 % one in the portfolio P/E.
+    </p>
+    <p class="aide">
+      Sectors come from the built-in table, falling back to the SEC&rsquo;s own
+      industry description. Geography is the country of the business address on
+      file with the SEC &mdash; the place the company reports from, not where it
+      earns its revenue.
+    </p>
+  </details>
+</main>
+
+<footer>
+  Data source: SEC EDGAR (XBRL) and market quotes.
+</footer>
+
+<script type="module" src="js/app-portfolio.js"></script>
+</body>
+</html>
