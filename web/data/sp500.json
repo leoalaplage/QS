@@ -1,0 +1,3526 @@
+[
+{
+"ticker": "MMM",
+"cik": 66740,
+"nom": "3M CO",
+"secteur": "Industrials",
+"industrie": "Industrial Conglomerates"
+},
+{
+"ticker": "AOS",
+"cik": 91142,
+"nom": "SMITH A O CORP",
+"secteur": "Industrials",
+"industrie": "Building Products"
+},
+{
+"ticker": "ABT",
+"cik": 1800,
+"nom": "ABBOTT LABORATORIES",
+"secteur": "Health Care",
+"industrie": "Health Care Equipment"
+},
+{
+"ticker": "ABBV",
+"cik": 1551152,
+"nom": "AbbVie Inc.",
+"secteur": "Health Care",
+"industrie": "Biotechnology"
+},
+{
+"ticker": "ACN",
+"cik": 1467373,
+"nom": "Accenture plc",
+"secteur": "Information Technology",
+"industrie": "IT Consulting & Other Services"
+},
+{
+"ticker": "ADBE",
+"cik": 796343,
+"nom": "ADOBE INC.",
+"secteur": "Information Technology",
+"industrie": "Application Software"
+},
+{
+"ticker": "AMD",
+"cik": 2488,
+"nom": "ADVANCED MICRO DEVICES INC",
+"secteur": "Information Technology",
+"industrie": "Semiconductors"
+},
+{
+"ticker": "AES",
+"cik": 874761,
+"nom": "AES CORP",
+"secteur": "Utilities",
+"industrie": "Independent Power Producers & Energy Traders"
+},
+{
+"ticker": "AFL",
+"cik": 4977,
+"nom": "AFLAC INC",
+"secteur": "Financials",
+"industrie": "Life & Health Insurance"
+},
+{
+"ticker": "A",
+"cik": 1090872,
+"nom": "AGILENT TECHNOLOGIES, INC.",
+"secteur": "Health Care",
+"industrie": "Life Sciences Tools & Services"
+},
+{
+"ticker": "APD",
+"cik": 2969,
+"nom": "Air Products & Chemicals, Inc.",
+"secteur": "Materials",
+"industrie": "Industrial Gases"
+},
+{
+"ticker": "ABNB",
+"cik": 1559720,
+"nom": "Airbnb, Inc.",
+"secteur": "Consumer Discretionary",
+"industrie": "Hotels, Resorts & Cruise Lines"
+},
+{
+"ticker": "AKAM",
+"cik": 1086222,
+"nom": "AKAMAI TECHNOLOGIES INC",
+"secteur": "Information Technology",
+"industrie": "Internet Services & Infrastructure"
+},
+{
+"ticker": "ALB",
+"cik": 915913,
+"nom": "ALBEMARLE CORP",
+"secteur": "Materials",
+"industrie": "Specialty Chemicals"
+},
+{
+"ticker": "ARE",
+"cik": 1035443,
+"nom": "ALEXANDRIA REAL ESTATE EQUITIES, INC.",
+"secteur": "Real Estate",
+"industrie": "Office REITs"
+},
+{
+"ticker": "ALGN",
+"cik": 1097149,
+"nom": "ALIGN TECHNOLOGY INC",
+"secteur": "Health Care",
+"industrie": "Health Care Supplies"
+},
+{
+"ticker": "ALLE",
+"cik": 1579241,
+"nom": "Allegion plc",
+"secteur": "Industrials",
+"industrie": "Building Products"
+},
+{
+"ticker": "LNT",
+"cik": 352541,
+"nom": "ALLIANT ENERGY CORP",
+"secteur": "Utilities",
+"industrie": "Electric Utilities"
+},
+{
+"ticker": "ALL",
+"cik": 899051,
+"nom": "ALLSTATE CORP",
+"secteur": "Financials",
+"industrie": "Property & Casualty Insurance"
+},
+{
+"ticker": "GOOGL",
+"cik": 1652044,
+"nom": "Alphabet Inc.",
+"secteur": "Communication Services",
+"industrie": "Interactive Media & Services"
+},
+{
+"ticker": "GOOG",
+"cik": 1652044,
+"nom": "Alphabet Inc.",
+"secteur": "Communication Services",
+"industrie": "Interactive Media & Services"
+},
+{
+"ticker": "MO",
+"cik": 764180,
+"nom": "ALTRIA GROUP, INC.",
+"secteur": "Consumer Staples",
+"industrie": "Tobacco"
+},
+{
+"ticker": "AMZN",
+"cik": 1018724,
+"nom": "AMAZON COM INC",
+"secteur": "Consumer Discretionary",
+"industrie": "Broadline Retail"
+},
+{
+"ticker": "AMCR",
+"cik": 1748790,
+"nom": "Amcor plc",
+"secteur": "Materials",
+"industrie": "Paper & Plastic Packaging Products & Materials"
+},
+{
+"ticker": "AEE",
+"cik": 1002910,
+"nom": "AMEREN CORP",
+"secteur": "Utilities",
+"industrie": "Multi-Utilities"
+},
+{
+"ticker": "AEP",
+"cik": 4904,
+"nom": "AMERICAN ELECTRIC POWER CO INC",
+"secteur": "Utilities",
+"industrie": "Electric Utilities"
+},
+{
+"ticker": "AXP",
+"cik": 4962,
+"nom": "AMERICAN EXPRESS CO",
+"secteur": "Financials",
+"industrie": "Consumer Finance"
+},
+{
+"ticker": "AIG",
+"cik": 5272,
+"nom": "AMERICAN INTERNATIONAL GROUP, INC.",
+"secteur": "Financials",
+"industrie": "Multi-line Insurance"
+},
+{
+"ticker": "AMT",
+"cik": 1053507,
+"nom": "AMERICAN TOWER CORP /MA/",
+"secteur": "Real Estate",
+"industrie": "Telecom Tower REITs"
+},
+{
+"ticker": "AWK",
+"cik": 1410636,
+"nom": "American Water Works Company, Inc.",
+"secteur": "Utilities",
+"industrie": "Water Utilities"
+},
+{
+"ticker": "AMP",
+"cik": 820027,
+"nom": "AMERIPRISE FINANCIAL INC",
+"secteur": "Financials",
+"industrie": "Asset Management & Custody Banks"
+},
+{
+"ticker": "AME",
+"cik": 1037868,
+"nom": "AMETEK INC/",
+"secteur": "Industrials",
+"industrie": "Electrical Components & Equipment"
+},
+{
+"ticker": "AMGN",
+"cik": 318154,
+"nom": "AMGEN INC",
+"secteur": "Health Care",
+"industrie": "Biotechnology"
+},
+{
+"ticker": "APH",
+"cik": 820313,
+"nom": "AMPHENOL CORP /DE/",
+"secteur": "Information Technology",
+"industrie": "Electronic Components"
+},
+{
+"ticker": "ADI",
+"cik": 6281,
+"nom": "ANALOG DEVICES INC",
+"secteur": "Information Technology",
+"industrie": "Semiconductors"
+},
+{
+"ticker": "AON",
+"cik": 315293,
+"nom": "Aon plc",
+"secteur": "Financials",
+"industrie": "Insurance Brokers"
+},
+{
+"ticker": "APA",
+"cik": 1841666,
+"nom": "APA Corp",
+"secteur": "Energy",
+"industrie": "Oil & Gas Exploration & Production"
+},
+{
+"ticker": "APO",
+"cik": 1858681,
+"nom": "Apollo Global Management, Inc.",
+"secteur": "Financials",
+"industrie": "Asset Management & Custody Banks"
+},
+{
+"ticker": "AAPL",
+"cik": 320193,
+"nom": "Apple Inc.",
+"secteur": "Information Technology",
+"industrie": "Technology Hardware, Storage & Peripherals"
+},
+{
+"ticker": "AMAT",
+"cik": 6951,
+"nom": "APPLIED MATERIALS INC /DE",
+"secteur": "Information Technology",
+"industrie": "Semiconductor Materials & Equipment"
+},
+{
+"ticker": "APP",
+"cik": 1751008,
+"nom": "AppLovin Corp",
+"secteur": "Information Technology",
+"industrie": "Application Software"
+},
+{
+"ticker": "APTV",
+"cik": 1521332,
+"nom": "Aptiv PLC",
+"secteur": "Consumer Discretionary",
+"industrie": "Automotive Parts & Equipment"
+},
+{
+"ticker": "ACGL",
+"cik": 947484,
+"nom": "ARCH CAPITAL GROUP LTD.",
+"secteur": "Financials",
+"industrie": "Property & Casualty Insurance"
+},
+{
+"ticker": "ADM",
+"cik": 7084,
+"nom": "Archer-Daniels-Midland Co",
+"secteur": "Consumer Staples",
+"industrie": "Agricultural Products & Services"
+},
+{
+"ticker": "ARES",
+"cik": 1176948,
+"nom": "Ares Management Corp",
+"secteur": "Financials",
+"industrie": "Asset Management & Custody Banks"
+},
+{
+"ticker": "ANET",
+"cik": 1596532,
+"nom": "Arista Networks, Inc.",
+"secteur": "Information Technology",
+"industrie": "Communications Equipment"
+},
+{
+"ticker": "AJG",
+"cik": 354190,
+"nom": "Arthur J. Gallagher & Co.",
+"secteur": "Financials",
+"industrie": "Insurance Brokers"
+},
+{
+"ticker": "AIZ",
+"cik": 1267238,
+"nom": "ASSURANT, INC.",
+"secteur": "Financials",
+"industrie": "Multi-line Insurance"
+},
+{
+"ticker": "T",
+"cik": 732717,
+"nom": "AT&T INC.",
+"secteur": "Communication Services",
+"industrie": "Integrated Telecommunication Services"
+},
+{
+"ticker": "ATO",
+"cik": 731802,
+"nom": "ATMOS ENERGY CORP",
+"secteur": "Utilities",
+"industrie": "Gas Utilities"
+},
+{
+"ticker": "ADSK",
+"cik": 769397,
+"nom": "Autodesk, Inc.",
+"secteur": "Information Technology",
+"industrie": "Application Software"
+},
+{
+"ticker": "ADP",
+"cik": 8670,
+"nom": "AUTOMATIC DATA PROCESSING INC",
+"secteur": "Industrials",
+"industrie": "Human Resource & Employment Services"
+},
+{
+"ticker": "AZO",
+"cik": 866787,
+"nom": "AUTOZONE INC",
+"secteur": "Consumer Discretionary",
+"industrie": "Automotive Retail"
+},
+{
+"ticker": "AVB",
+"cik": 915912,
+"nom": "AVALONBAY COMMUNITIES INC",
+"secteur": "Real Estate",
+"industrie": "Multi-Family Residential REITs"
+},
+{
+"ticker": "AVY",
+"cik": 8818,
+"nom": "Avery Dennison Corp",
+"secteur": "Materials",
+"industrie": "Paper & Plastic Packaging Products & Materials"
+},
+{
+"ticker": "AXON",
+"cik": 1069183,
+"nom": "AXON ENTERPRISE, INC.",
+"secteur": "Industrials",
+"industrie": "Aerospace & Defense"
+},
+{
+"ticker": "BKR",
+"cik": 1701605,
+"nom": "Baker Hughes Co",
+"secteur": "Energy",
+"industrie": "Oil & Gas Equipment & Services"
+},
+{
+"ticker": "BALL",
+"cik": 9389,
+"nom": "BALL Corp",
+"secteur": "Materials",
+"industrie": "Metal, Glass & Plastic Containers"
+},
+{
+"ticker": "BAC",
+"cik": 70858,
+"nom": "BANK OF AMERICA CORP /DE/",
+"secteur": "Financials",
+"industrie": "Diversified Banks"
+},
+{
+"ticker": "BAX",
+"cik": 10456,
+"nom": "BAXTER INTERNATIONAL INC",
+"secteur": "Health Care",
+"industrie": "Health Care Equipment"
+},
+{
+"ticker": "BDX",
+"cik": 10795,
+"nom": "BECTON DICKINSON & CO",
+"secteur": "Health Care",
+"industrie": "Health Care Equipment"
+},
+{
+"ticker": "BRK-B",
+"cik": 1067983,
+"nom": "BERKSHIRE HATHAWAY INC",
+"secteur": "Financials",
+"industrie": "Multi-Sector Holdings"
+},
+{
+"ticker": "BBY",
+"cik": 764478,
+"nom": "BEST BUY CO INC",
+"secteur": "Consumer Discretionary",
+"industrie": "Computer & Electronics Retail"
+},
+{
+"ticker": "TECH",
+"cik": 842023,
+"nom": "BIO-TECHNE Corp",
+"secteur": "Health Care",
+"industrie": "Life Sciences Tools & Services"
+},
+{
+"ticker": "BIIB",
+"cik": 875045,
+"nom": "BIOGEN INC.",
+"secteur": "Health Care",
+"industrie": "Biotechnology"
+},
+{
+"ticker": "BLK",
+"cik": 2012383,
+"nom": "BlackRock, Inc.",
+"secteur": "Financials",
+"industrie": "Asset Management & Custody Banks"
+},
+{
+"ticker": "BX",
+"cik": 1393818,
+"nom": "Blackstone Inc.",
+"secteur": "Financials",
+"industrie": "Asset Management & Custody Banks"
+},
+{
+"ticker": "XYZ",
+"cik": 1512673,
+"nom": "Block, Inc.",
+"secteur": "Financials",
+"industrie": "Transaction & Payment Processing Services"
+},
+{
+"ticker": "BNY",
+"cik": 1390777,
+"nom": "Bank of New York Mellon Corp",
+"secteur": "Financials",
+"industrie": "Asset Management & Custody Banks"
+},
+{
+"ticker": "BA",
+"cik": 12927,
+"nom": "BOEING CO",
+"secteur": "Industrials",
+"industrie": "Aerospace & Defense"
+},
+{
+"ticker": "BKNG",
+"cik": 1075531,
+"nom": "Booking Holdings Inc.",
+"secteur": "Consumer Discretionary",
+"industrie": "Hotels, Resorts & Cruise Lines"
+},
+{
+"ticker": "BSX",
+"cik": 885725,
+"nom": "BOSTON SCIENTIFIC CORP",
+"secteur": "Health Care",
+"industrie": "Health Care Equipment"
+},
+{
+"ticker": "BMY",
+"cik": 14272,
+"nom": "BRISTOL MYERS SQUIBB CO",
+"secteur": "Health Care",
+"industrie": "Pharmaceuticals"
+},
+{
+"ticker": "AVGO",
+"cik": 1730168,
+"nom": "Broadcom Inc.",
+"secteur": "Information Technology",
+"industrie": "Semiconductors"
+},
+{
+"ticker": "BR",
+"cik": 1383312,
+"nom": "BROADRIDGE FINANCIAL SOLUTIONS, INC.",
+"secteur": "Industrials",
+"industrie": "Data Processing & Outsourced Services"
+},
+{
+"ticker": "BRO",
+"cik": 79282,
+"nom": "BROWN & BROWN, INC.",
+"secteur": "Financials",
+"industrie": "Insurance Brokers"
+},
+{
+"ticker": "BF-B",
+"cik": 14693,
+"nom": "BROWN FORMAN CORP",
+"secteur": "Consumer Staples",
+"industrie": "Distillers & Vintners"
+},
+{
+"ticker": "BLDR",
+"cik": 1316835,
+"nom": "Builders FirstSource, Inc.",
+"secteur": "Industrials",
+"industrie": "Building Products"
+},
+{
+"ticker": "BG",
+"cik": 1996862,
+"nom": "Bunge Global SA",
+"secteur": "Consumer Staples",
+"industrie": "Agricultural Products & Services"
+},
+{
+"ticker": "BXP",
+"cik": 1037540,
+"nom": "BXP, Inc.",
+"secteur": "Real Estate",
+"industrie": "Office REITs"
+},
+{
+"ticker": "CHRW",
+"cik": 1043277,
+"nom": "C. H. ROBINSON WORLDWIDE, INC.",
+"secteur": "Industrials",
+"industrie": "Air Freight & Logistics"
+},
+{
+"ticker": "CDNS",
+"cik": 813672,
+"nom": "CADENCE DESIGN SYSTEMS INC",
+"secteur": "Information Technology",
+"industrie": "Application Software"
+},
+{
+"ticker": "CPT",
+"cik": 906345,
+"nom": "CAMDEN PROPERTY TRUST",
+"secteur": "Real Estate",
+"industrie": "Multi-Family Residential REITs"
+},
+{
+"ticker": "COF",
+"cik": 927628,
+"nom": "CAPITAL ONE FINANCIAL CORP",
+"secteur": "Financials",
+"industrie": "Consumer Finance"
+},
+{
+"ticker": "CAH",
+"cik": 721371,
+"nom": "CARDINAL HEALTH INC",
+"secteur": "Health Care",
+"industrie": "Health Care Distributors"
+},
+{
+"ticker": "CCL",
+"cik": 815097,
+"nom": "Carnival Corp Ltd.",
+"secteur": "Consumer Discretionary",
+"industrie": "Hotels, Resorts & Cruise Lines"
+},
+{
+"ticker": "CARR",
+"cik": 1783180,
+"nom": "CARRIER GLOBAL Corp",
+"secteur": "Industrials",
+"industrie": "Building Products"
+},
+{
+"ticker": "CVNA",
+"cik": 1690820,
+"nom": "CARVANA CO.",
+"secteur": "Consumer Discretionary",
+"industrie": "Automotive Retail"
+},
+{
+"ticker": "CASY",
+"cik": 726958,
+"nom": "CASEYS GENERAL STORES INC",
+"secteur": "Consumer Staples",
+"industrie": "Food Retail"
+},
+{
+"ticker": "CAT",
+"cik": 18230,
+"nom": "CATERPILLAR INC",
+"secteur": "Industrials",
+"industrie": "Construction Machinery & Heavy Transportation Equipment"
+},
+{
+"ticker": "CBOE",
+"cik": 1374310,
+"nom": "Cboe Global Markets, Inc.",
+"secteur": "Financials",
+"industrie": "Financial Exchanges & Data"
+},
+{
+"ticker": "CBRE",
+"cik": 1138118,
+"nom": "CBRE GROUP, INC.",
+"secteur": "Real Estate",
+"industrie": "Real Estate Services"
+},
+{
+"ticker": "CDW",
+"cik": 1402057,
+"nom": "CDW Corp",
+"secteur": "Information Technology",
+"industrie": "Technology Distributors"
+},
+{
+"ticker": "COR",
+"cik": 1140859,
+"nom": "Cencora, Inc.",
+"secteur": "Health Care",
+"industrie": "Health Care Distributors"
+},
+{
+"ticker": "CNC",
+"cik": 1071739,
+"nom": "CENTENE CORP",
+"secteur": "Health Care",
+"industrie": "Managed Health Care"
+},
+{
+"ticker": "CNP",
+"cik": 1130310,
+"nom": "CENTERPOINT ENERGY INC",
+"secteur": "Utilities",
+"industrie": "Multi-Utilities"
+},
+{
+"ticker": "CF",
+"cik": 1324404,
+"nom": "CF Industries Holdings, Inc.",
+"secteur": "Materials",
+"industrie": "Fertilizers & Agricultural Chemicals"
+},
+{
+"ticker": "CRL",
+"cik": 1100682,
+"nom": "CHARLES RIVER LABORATORIES INTERNATIONAL, INC.",
+"secteur": "Health Care",
+"industrie": "Life Sciences Tools & Services"
+},
+{
+"ticker": "SCHW",
+"cik": 316709,
+"nom": "SCHWAB CHARLES CORP",
+"secteur": "Financials",
+"industrie": "Investment Banking & Brokerage"
+},
+{
+"ticker": "CHTR",
+"cik": 1091667,
+"nom": "CHARTER COMMUNICATIONS, INC. /MO/",
+"secteur": "Communication Services",
+"industrie": "Cable & Satellite"
+},
+{
+"ticker": "CVX",
+"cik": 93410,
+"nom": "CHEVRON CORP",
+"secteur": "Energy",
+"industrie": "Integrated Oil & Gas"
+},
+{
+"ticker": "CMG",
+"cik": 1058090,
+"nom": "CHIPOTLE MEXICAN GRILL INC",
+"secteur": "Consumer Discretionary",
+"industrie": "Restaurants"
+},
+{
+"ticker": "CB",
+"cik": 896159,
+"nom": "Chubb Ltd",
+"secteur": "Financials",
+"industrie": "Property & Casualty Insurance"
+},
+{
+"ticker": "CHD",
+"cik": 313927,
+"nom": "CHURCH & DWIGHT CO INC /DE/",
+"secteur": "Consumer Staples",
+"industrie": "Household Products"
+},
+{
+"ticker": "CIEN",
+"cik": 936395,
+"nom": "CIENA CORP",
+"secteur": "Information Technology",
+"industrie": "Communications Equipment"
+},
+{
+"ticker": "CI",
+"cik": 1739940,
+"nom": "Cigna Group",
+"secteur": "Health Care",
+"industrie": "Health Care Services"
+},
+{
+"ticker": "CINF",
+"cik": 20286,
+"nom": "CINCINNATI FINANCIAL CORP",
+"secteur": "Financials",
+"industrie": "Property & Casualty Insurance"
+},
+{
+"ticker": "CTAS",
+"cik": 723254,
+"nom": "CINTAS CORP",
+"secteur": "Industrials",
+"industrie": "Diversified Support Services"
+},
+{
+"ticker": "CSCO",
+"cik": 858877,
+"nom": "CISCO SYSTEMS, INC.",
+"secteur": "Information Technology",
+"industrie": "Communications Equipment"
+},
+{
+"ticker": "C",
+"cik": 831001,
+"nom": "CITIGROUP INC",
+"secteur": "Financials",
+"industrie": "Diversified Banks"
+},
+{
+"ticker": "CFG",
+"cik": 759944,
+"nom": "CITIZENS FINANCIAL GROUP INC/RI",
+"secteur": "Financials",
+"industrie": "Regional Banks"
+},
+{
+"ticker": "CLX",
+"cik": 21076,
+"nom": "CLOROX CO /DE/",
+"secteur": "Consumer Staples",
+"industrie": "Household Products"
+},
+{
+"ticker": "CME",
+"cik": 1156375,
+"nom": "CME GROUP INC.",
+"secteur": "Financials",
+"industrie": "Financial Exchanges & Data"
+},
+{
+"ticker": "CMS",
+"cik": 811156,
+"nom": "CMS ENERGY CORP",
+"secteur": "Utilities",
+"industrie": "Multi-Utilities"
+},
+{
+"ticker": "KO",
+"cik": 21344,
+"nom": "COCA COLA CO",
+"secteur": "Consumer Staples",
+"industrie": "Soft Drinks & Non-alcoholic Beverages"
+},
+{
+"ticker": "CTSH",
+"cik": 1058290,
+"nom": "COGNIZANT TECHNOLOGY SOLUTIONS CORP",
+"secteur": "Information Technology",
+"industrie": "IT Consulting & Other Services"
+},
+{
+"ticker": "COHR",
+"cik": 820318,
+"nom": "COHERENT CORP.",
+"secteur": "Information Technology",
+"industrie": "Electronic Components"
+},
+{
+"ticker": "COIN",
+"cik": 1679788,
+"nom": "Coinbase Global, Inc.",
+"secteur": "Financials",
+"industrie": "Financial Exchanges & Data"
+},
+{
+"ticker": "CL",
+"cik": 21665,
+"nom": "COLGATE PALMOLIVE CO",
+"secteur": "Consumer Staples",
+"industrie": "Household Products"
+},
+{
+"ticker": "CMCSA",
+"cik": 1166691,
+"nom": "COMCAST CORP",
+"secteur": "Communication Services",
+"industrie": "Cable & Satellite"
+},
+{
+"ticker": "FIX",
+"cik": 1035983,
+"nom": "COMFORT SYSTEMS USA INC",
+"secteur": "Industrials",
+"industrie": "Construction & Engineering"
+},
+{
+"ticker": "COP",
+"cik": 1163165,
+"nom": "CONOCOPHILLIPS",
+"secteur": "Energy",
+"industrie": "Oil & Gas Exploration & Production"
+},
+{
+"ticker": "ED",
+"cik": 1047862,
+"nom": "CONSOLIDATED EDISON INC",
+"secteur": "Utilities",
+"industrie": "Multi-Utilities"
+},
+{
+"ticker": "STZ",
+"cik": 16918,
+"nom": "CONSTELLATION BRANDS, INC.",
+"secteur": "Consumer Staples",
+"industrie": "Distillers & Vintners"
+},
+{
+"ticker": "CEG",
+"cik": 1868275,
+"nom": "Constellation Energy Corp",
+"secteur": "Utilities",
+"industrie": "Electric Utilities"
+},
+{
+"ticker": "COO",
+"cik": 711404,
+"nom": "COOPER COMPANIES, INC.",
+"secteur": "Health Care",
+"industrie": "Health Care Supplies"
+},
+{
+"ticker": "CPRT",
+"cik": 900075,
+"nom": "COPART INC",
+"secteur": "Industrials",
+"industrie": "Diversified Support Services"
+},
+{
+"ticker": "GLW",
+"cik": 24741,
+"nom": "CORNING INC /NY",
+"secteur": "Information Technology",
+"industrie": "Electronic Components"
+},
+{
+"ticker": "CPAY",
+"cik": 1175454,
+"nom": "CORPAY, INC.",
+"secteur": "Financials",
+"industrie": "Transaction & Payment Processing Services"
+},
+{
+"ticker": "CTVA",
+"cik": 1755672,
+"nom": "Corteva, Inc.",
+"secteur": "Materials",
+"industrie": "Fertilizers & Agricultural Chemicals"
+},
+{
+"ticker": "CSGP",
+"cik": 1057352,
+"nom": "COSTAR GROUP, INC.",
+"secteur": "Real Estate",
+"industrie": "Real Estate Services"
+},
+{
+"ticker": "COST",
+"cik": 909832,
+"nom": "COSTCO WHOLESALE CORP /NEW",
+"secteur": "Consumer Staples",
+"industrie": "Consumer Staples Merchandise Retail"
+},
+{
+"ticker": "CRH",
+"cik": 849395,
+"nom": "CRH PUBLIC LTD CO",
+"secteur": "Materials",
+"industrie": "Construction Materials"
+},
+{
+"ticker": "CRWD",
+"cik": 1535527,
+"nom": "CrowdStrike Holdings, Inc.",
+"secteur": "Information Technology",
+"industrie": "Systems Software"
+},
+{
+"ticker": "CCI",
+"cik": 1051470,
+"nom": "CROWN CASTLE INC.",
+"secteur": "Real Estate",
+"industrie": "Telecom Tower REITs"
+},
+{
+"ticker": "CSX",
+"cik": 277948,
+"nom": "CSX CORP",
+"secteur": "Industrials",
+"industrie": "Rail Transportation"
+},
+{
+"ticker": "CMI",
+"cik": 26172,
+"nom": "CUMMINS INC",
+"secteur": "Industrials",
+"industrie": "Construction Machinery & Heavy Transportation Equipment"
+},
+{
+"ticker": "CVS",
+"cik": 64803,
+"nom": "CVS HEALTH Corp",
+"secteur": "Health Care",
+"industrie": "Health Care Services"
+},
+{
+"ticker": "DHR",
+"cik": 313616,
+"nom": "DANAHER CORP /DE/",
+"secteur": "Health Care",
+"industrie": "Life Sciences Tools & Services"
+},
+{
+"ticker": "DRI",
+"cik": 940944,
+"nom": "DARDEN RESTAURANTS INC",
+"secteur": "Consumer Discretionary",
+"industrie": "Restaurants"
+},
+{
+"ticker": "DDOG",
+"cik": 1561550,
+"nom": "Datadog, Inc.",
+"secteur": "Information Technology",
+"industrie": "Application Software"
+},
+{
+"ticker": "DVA",
+"cik": 927066,
+"nom": "DAVITA INC.",
+"secteur": "Health Care",
+"industrie": "Health Care Services"
+},
+{
+"ticker": "DECK",
+"cik": 910521,
+"nom": "DECKERS OUTDOOR CORP",
+"secteur": "Consumer Discretionary",
+"industrie": "Footwear"
+},
+{
+"ticker": "DE",
+"cik": 315189,
+"nom": "DEERE & CO",
+"secteur": "Industrials",
+"industrie": "Agricultural & Farm Machinery"
+},
+{
+"ticker": "DELL",
+"cik": 1571996,
+"nom": "Dell Technologies Inc.",
+"secteur": "Information Technology",
+"industrie": "Technology Hardware, Storage & Peripherals"
+},
+{
+"ticker": "DAL",
+"cik": 27904,
+"nom": "DELTA AIR LINES, INC.",
+"secteur": "Industrials",
+"industrie": "Passenger Airlines"
+},
+{
+"ticker": "DVN",
+"cik": 1090012,
+"nom": "DEVON ENERGY CORP/DE",
+"secteur": "Energy",
+"industrie": "Oil & Gas Exploration & Production"
+},
+{
+"ticker": "DXCM",
+"cik": 1093557,
+"nom": "DEXCOM INC",
+"secteur": "Health Care",
+"industrie": "Health Care Equipment"
+},
+{
+"ticker": "FANG",
+"cik": 1539838,
+"nom": "Diamondback Energy, Inc.",
+"secteur": "Energy",
+"industrie": "Oil & Gas Exploration & Production"
+},
+{
+"ticker": "DLR",
+"cik": 1297996,
+"nom": "DIGITAL REALTY TRUST, INC.",
+"secteur": "Real Estate",
+"industrie": "Data Center REITs"
+},
+{
+"ticker": "DG",
+"cik": 29534,
+"nom": "DOLLAR GENERAL CORP",
+"secteur": "Consumer Staples",
+"industrie": "Consumer Staples Merchandise Retail"
+},
+{
+"ticker": "DLTR",
+"cik": 935703,
+"nom": "DOLLAR TREE, INC.",
+"secteur": "Consumer Staples",
+"industrie": "Consumer Staples Merchandise Retail"
+},
+{
+"ticker": "D",
+"cik": 715957,
+"nom": "DOMINION ENERGY, INC",
+"secteur": "Utilities",
+"industrie": "Multi-Utilities"
+},
+{
+"ticker": "DPZ",
+"cik": 1286681,
+"nom": "DOMINOS PIZZA INC",
+"secteur": "Consumer Discretionary",
+"industrie": "Restaurants"
+},
+{
+"ticker": "DASH",
+"cik": 1792789,
+"nom": "DoorDash, Inc.",
+"secteur": "Consumer Discretionary",
+"industrie": "Specialized Consumer Services"
+},
+{
+"ticker": "DOV",
+"cik": 29905,
+"nom": "DOVER Corp",
+"secteur": "Industrials",
+"industrie": "Industrial Machinery & Supplies & Components"
+},
+{
+"ticker": "DOW",
+"cik": 1751788,
+"nom": "DOW INC.",
+"secteur": "Materials",
+"industrie": "Commodity Chemicals"
+},
+{
+"ticker": "DHI",
+"cik": 882184,
+"nom": "HORTON D R INC /DE/",
+"secteur": "Consumer Discretionary",
+"industrie": "Homebuilding"
+},
+{
+"ticker": "DTE",
+"cik": 936340,
+"nom": "DTE ENERGY CO",
+"secteur": "Utilities",
+"industrie": "Multi-Utilities"
+},
+{
+"ticker": "DUK",
+"cik": 1326160,
+"nom": "Duke Energy CORP",
+"secteur": "Utilities",
+"industrie": "Electric Utilities"
+},
+{
+"ticker": "DD",
+"cik": 1666700,
+"nom": "DuPont de Nemours, Inc.",
+"secteur": "Materials",
+"industrie": "Specialty Chemicals"
+},
+{
+"ticker": "ETN",
+"cik": 1551182,
+"nom": "Eaton Corp plc",
+"secteur": "Industrials",
+"industrie": "Electrical Components & Equipment"
+},
+{
+"ticker": "EBAY",
+"cik": 1065088,
+"nom": "EBAY INC",
+"secteur": "Consumer Discretionary",
+"industrie": "Broadline Retail"
+},
+{
+"ticker": "ECHO",
+"cik": 1415404,
+"nom": "EchoStar CORP",
+"secteur": "Communication Services",
+"industrie": "Wireless Telecommunication Services"
+},
+{
+"ticker": "ECL",
+"cik": 31462,
+"nom": "ECOLAB INC.",
+"secteur": "Materials",
+"industrie": "Specialty Chemicals"
+},
+{
+"ticker": "EIX",
+"cik": 827052,
+"nom": "EDISON INTERNATIONAL",
+"secteur": "Utilities",
+"industrie": "Electric Utilities"
+},
+{
+"ticker": "EW",
+"cik": 1099800,
+"nom": "Edwards Lifesciences Corp",
+"secteur": "Health Care",
+"industrie": "Health Care Equipment"
+},
+{
+"ticker": "EA",
+"cik": 712515,
+"nom": "ELECTRONIC ARTS INC.",
+"secteur": "Communication Services",
+"industrie": "Interactive Home Entertainment"
+},
+{
+"ticker": "ELV",
+"cik": 1156039,
+"nom": "Elevance Health, Inc.",
+"secteur": "Health Care",
+"industrie": "Managed Health Care"
+},
+{
+"ticker": "EME",
+"cik": 105634,
+"nom": "EMCOR Group, Inc.",
+"secteur": "Industrials",
+"industrie": "Construction & Engineering"
+},
+{
+"ticker": "EMR",
+"cik": 32604,
+"nom": "EMERSON ELECTRIC CO",
+"secteur": "Industrials",
+"industrie": "Electrical Components & Equipment"
+},
+{
+"ticker": "ETR",
+"cik": 65984,
+"nom": "ENTERGY CORP /DE/",
+"secteur": "Utilities",
+"industrie": "Electric Utilities"
+},
+{
+"ticker": "EOG",
+"cik": 821189,
+"nom": "EOG RESOURCES INC",
+"secteur": "Energy",
+"industrie": "Oil & Gas Exploration & Production"
+},
+{
+"ticker": "EQT",
+"cik": 33213,
+"nom": "EQT Corp",
+"secteur": "Energy",
+"industrie": "Oil & Gas Exploration & Production"
+},
+{
+"ticker": "EFX",
+"cik": 33185,
+"nom": "EQUIFAX INC",
+"secteur": "Industrials",
+"industrie": "Research & Consulting Services"
+},
+{
+"ticker": "EQIX",
+"cik": 1101239,
+"nom": "EQUINIX INC",
+"secteur": "Real Estate",
+"industrie": "Data Center REITs"
+},
+{
+"ticker": "EQR",
+"cik": 906107,
+"nom": "EQUITY RESIDENTIAL",
+"secteur": "Real Estate",
+"industrie": "Multi-Family Residential REITs"
+},
+{
+"ticker": "ERIE",
+"cik": 922621,
+"nom": "ERIE INDEMNITY CO",
+"secteur": "Financials",
+"industrie": "Insurance Brokers"
+},
+{
+"ticker": "ESS",
+"cik": 920522,
+"nom": "ESSEX PROPERTY TRUST, INC.",
+"secteur": "Real Estate",
+"industrie": "Multi-Family Residential REITs"
+},
+{
+"ticker": "EL",
+"cik": 1001250,
+"nom": "ESTEE LAUDER COMPANIES INC",
+"secteur": "Consumer Staples",
+"industrie": "Personal Care Products"
+},
+{
+"ticker": "EG",
+"cik": 1095073,
+"nom": "EVEREST GROUP, LTD.",
+"secteur": "Financials",
+"industrie": "Reinsurance"
+},
+{
+"ticker": "EVRG",
+"cik": 1711269,
+"nom": "Evergy, Inc.",
+"secteur": "Utilities",
+"industrie": "Electric Utilities"
+},
+{
+"ticker": "ES",
+"cik": 72741,
+"nom": "EVERSOURCE ENERGY",
+"secteur": "Utilities",
+"industrie": "Electric Utilities"
+},
+{
+"ticker": "EXC",
+"cik": 1109357,
+"nom": "EXELON CORP",
+"secteur": "Utilities",
+"industrie": "Electric Utilities"
+},
+{
+"ticker": "EXE",
+"cik": 895126,
+"nom": "EXPAND ENERGY Corp",
+"secteur": "Energy",
+"industrie": "Oil & Gas Exploration & Production"
+},
+{
+"ticker": "EXPE",
+"cik": 1324424,
+"nom": "Expedia Group, Inc.",
+"secteur": "Consumer Discretionary",
+"industrie": "Hotels, Resorts & Cruise Lines"
+},
+{
+"ticker": "EXPD",
+"cik": 746515,
+"nom": "EXPEDITORS INTERNATIONAL OF WASHINGTON INC",
+"secteur": "Industrials",
+"industrie": "Air Freight & Logistics"
+},
+{
+"ticker": "EXR",
+"cik": 1289490,
+"nom": "Extra Space Storage Inc.",
+"secteur": "Real Estate",
+"industrie": "Self-Storage REITs"
+},
+{
+"ticker": "XOM",
+"cik": 34088,
+"nom": "EXXON MOBIL CORP",
+"secteur": "Energy",
+"industrie": "Integrated Oil & Gas",
+"note": "ticker points at a holding shell; accounts filed by the operating entity"
+},
+{
+"ticker": "FFIV",
+"cik": 1048695,
+"nom": "F5, INC.",
+"secteur": "Information Technology",
+"industrie": "Communications Equipment"
+},
+{
+"ticker": "FDS",
+"cik": 1013237,
+"nom": "FACTSET RESEARCH SYSTEMS INC",
+"secteur": "Financials",
+"industrie": "Financial Exchanges & Data"
+},
+{
+"ticker": "FICO",
+"cik": 814547,
+"nom": "FAIR ISAAC CORP",
+"secteur": "Information Technology",
+"industrie": "Application Software"
+},
+{
+"ticker": "FAST",
+"cik": 815556,
+"nom": "FASTENAL CO",
+"secteur": "Industrials",
+"industrie": "Trading Companies & Distributors"
+},
+{
+"ticker": "FRT",
+"cik": 34903,
+"nom": "FEDERAL REALTY INVESTMENT TRUST",
+"secteur": "Real Estate",
+"industrie": "Retail REITs"
+},
+{
+"ticker": "FDX",
+"cik": 1048911,
+"nom": "FEDEX CORP",
+"secteur": "Industrials",
+"industrie": "Air Freight & Logistics"
+},
+{
+"ticker": "FDXF",
+"cik": 2082247,
+"nom": "FedEx Freight Holding Company, Inc.",
+"secteur": "Industrials",
+"industrie": "Cargo Ground Transportation",
+"sansComptes": "spin-off registered, no accounts filed yet"
+},
+{
+"ticker": "FIS",
+"cik": 1136893,
+"nom": "Fidelity National Information Services, Inc.",
+"secteur": "Financials",
+"industrie": "Transaction & Payment Processing Services"
+},
+{
+"ticker": "FITB",
+"cik": 35527,
+"nom": "FIFTH THIRD BANCORP",
+"secteur": "Financials",
+"industrie": "Regional Banks"
+},
+{
+"ticker": "FSLR",
+"cik": 1274494,
+"nom": "FIRST SOLAR, INC.",
+"secteur": "Information Technology",
+"industrie": "Semiconductors"
+},
+{
+"ticker": "FE",
+"cik": 1031296,
+"nom": "FIRSTENERGY CORP",
+"secteur": "Utilities",
+"industrie": "Electric Utilities"
+},
+{
+"ticker": "FISV",
+"cik": 798354,
+"nom": "FISERV INC",
+"secteur": "Financials",
+"industrie": "Transaction & Payment Processing Services"
+},
+{
+"ticker": "FLEX",
+"cik": 866374,
+"nom": "FLEX LTD.",
+"secteur": "Information Technology",
+"industrie": "Electronic Manufacturing Services"
+},
+{
+"ticker": "F",
+"cik": 37996,
+"nom": "FORD MOTOR CO",
+"secteur": "Consumer Discretionary",
+"industrie": "Automobile Manufacturers"
+},
+{
+"ticker": "FTNT",
+"cik": 1262039,
+"nom": "Fortinet, Inc.",
+"secteur": "Information Technology",
+"industrie": "Systems Software"
+},
+{
+"ticker": "FTV",
+"cik": 1659166,
+"nom": "Fortive Corp",
+"secteur": "Industrials",
+"industrie": "Industrial Machinery & Supplies & Components"
+},
+{
+"ticker": "FOXA",
+"cik": 1754301,
+"nom": "Fox Corp",
+"secteur": "Communication Services",
+"industrie": "Broadcasting"
+},
+{
+"ticker": "FOX",
+"cik": 1754301,
+"nom": "Fox Corp",
+"secteur": "Communication Services",
+"industrie": "Broadcasting"
+},
+{
+"ticker": "BEN",
+"cik": 38777,
+"nom": "FRANKLIN RESOURCES INC",
+"secteur": "Financials",
+"industrie": "Asset Management & Custody Banks"
+},
+{
+"ticker": "FCX",
+"cik": 831259,
+"nom": "FREEPORT-MCMORAN INC",
+"secteur": "Materials",
+"industrie": "Copper"
+},
+{
+"ticker": "GRMN",
+"cik": 1121788,
+"nom": "GARMIN LTD",
+"secteur": "Consumer Discretionary",
+"industrie": "Consumer Electronics"
+},
+{
+"ticker": "IT",
+"cik": 749251,
+"nom": "GARTNER INC",
+"secteur": "Information Technology",
+"industrie": "IT Consulting & Other Services"
+},
+{
+"ticker": "GE",
+"cik": 40545,
+"nom": "GENERAL ELECTRIC CO",
+"secteur": "Industrials",
+"industrie": "Aerospace & Defense"
+},
+{
+"ticker": "GEHC",
+"cik": 1932393,
+"nom": "GE HealthCare Technologies Inc.",
+"secteur": "Health Care",
+"industrie": "Health Care Equipment"
+},
+{
+"ticker": "GEV",
+"cik": 1996810,
+"nom": "GE Vernova Inc.",
+"secteur": "Industrials",
+"industrie": "Heavy Electrical Equipment"
+},
+{
+"ticker": "GEN",
+"cik": 849399,
+"nom": "Gen Digital Inc.",
+"secteur": "Information Technology",
+"industrie": "Systems Software"
+},
+{
+"ticker": "GNRC",
+"cik": 1474735,
+"nom": "GENERAC HOLDINGS INC.",
+"secteur": "Industrials",
+"industrie": "Heavy Electrical Equipment"
+},
+{
+"ticker": "GD",
+"cik": 40533,
+"nom": "GENERAL DYNAMICS CORP",
+"secteur": "Industrials",
+"industrie": "Aerospace & Defense"
+},
+{
+"ticker": "GIS",
+"cik": 40704,
+"nom": "GENERAL MILLS INC",
+"secteur": "Consumer Staples",
+"industrie": "Packaged Foods & Meats"
+},
+{
+"ticker": "GM",
+"cik": 1467858,
+"nom": "General Motors Co",
+"secteur": "Consumer Discretionary",
+"industrie": "Automobile Manufacturers"
+},
+{
+"ticker": "GPC",
+"cik": 40987,
+"nom": "GENUINE PARTS CO",
+"secteur": "Consumer Discretionary",
+"industrie": "Distributors"
+},
+{
+"ticker": "GILD",
+"cik": 882095,
+"nom": "GILEAD SCIENCES, INC.",
+"secteur": "Health Care",
+"industrie": "Biotechnology"
+},
+{
+"ticker": "GPN",
+"cik": 1123360,
+"nom": "GLOBAL PAYMENTS INC",
+"secteur": "Financials",
+"industrie": "Transaction & Payment Processing Services"
+},
+{
+"ticker": "GL",
+"cik": 320335,
+"nom": "GLOBE LIFE INC.",
+"secteur": "Financials",
+"industrie": "Life & Health Insurance"
+},
+{
+"ticker": "GDDY",
+"cik": 1609711,
+"nom": "GoDaddy Inc.",
+"secteur": "Information Technology",
+"industrie": "Internet Services & Infrastructure"
+},
+{
+"ticker": "GS",
+"cik": 886982,
+"nom": "GOLDMAN SACHS GROUP INC",
+"secteur": "Financials",
+"industrie": "Investment Banking & Brokerage"
+},
+{
+"ticker": "HAL",
+"cik": 45012,
+"nom": "HALLIBURTON CO",
+"secteur": "Energy",
+"industrie": "Oil & Gas Equipment & Services"
+},
+{
+"ticker": "HIG",
+"cik": 874766,
+"nom": "HARTFORD INSURANCE GROUP, INC.",
+"secteur": "Financials",
+"industrie": "Property & Casualty Insurance"
+},
+{
+"ticker": "HAS",
+"cik": 46080,
+"nom": "HASBRO, INC.",
+"secteur": "Consumer Discretionary",
+"industrie": "Leisure Products"
+},
+{
+"ticker": "HCA",
+"cik": 860730,
+"nom": "HCA Healthcare, Inc.",
+"secteur": "Health Care",
+"industrie": "Health Care Facilities"
+},
+{
+"ticker": "DOC",
+"cik": 765880,
+"nom": "HEALTHPEAK PROPERTIES, INC.",
+"secteur": "Real Estate",
+"industrie": "Health Care REITs"
+},
+{
+"ticker": "HSIC",
+"cik": 1000228,
+"nom": "HENRY SCHEIN INC",
+"secteur": "Health Care",
+"industrie": "Health Care Distributors"
+},
+{
+"ticker": "HSY",
+"cik": 47111,
+"nom": "HERSHEY CO",
+"secteur": "Consumer Staples",
+"industrie": "Packaged Foods & Meats"
+},
+{
+"ticker": "HPE",
+"cik": 1645590,
+"nom": "Hewlett Packard Enterprise Co",
+"secteur": "Information Technology",
+"industrie": "Technology Hardware, Storage & Peripherals"
+},
+{
+"ticker": "HLT",
+"cik": 1585689,
+"nom": "Hilton Worldwide Holdings Inc.",
+"secteur": "Consumer Discretionary",
+"industrie": "Hotels, Resorts & Cruise Lines"
+},
+{
+"ticker": "HD",
+"cik": 354950,
+"nom": "HOME DEPOT, INC.",
+"secteur": "Consumer Discretionary",
+"industrie": "Home Improvement Retail"
+},
+{
+"ticker": "HONA",
+"cik": 2089271,
+"nom": "Honeywell Aerospace Inc.",
+"secteur": "Industrials",
+"industrie": "Aerospace & Defense",
+"sansComptes": "spin-off registered, no accounts filed yet"
+},
+{
+"ticker": "HON",
+"cik": 773840,
+"nom": "HONEYWELL INTERNATIONAL INC",
+"secteur": "Industrials",
+"industrie": "Industrial Conglomerates"
+},
+{
+"ticker": "HRL",
+"cik": 48465,
+"nom": "HORMEL FOODS CORP /DE/",
+"secteur": "Consumer Staples",
+"industrie": "Packaged Foods & Meats"
+},
+{
+"ticker": "HST",
+"cik": 1070750,
+"nom": "HOST HOTELS & RESORTS, INC.",
+"secteur": "Real Estate",
+"industrie": "Hotel & Resort REITs"
+},
+{
+"ticker": "HWM",
+"cik": 4281,
+"nom": "Howmet Aerospace Inc.",
+"secteur": "Industrials",
+"industrie": "Aerospace & Defense"
+},
+{
+"ticker": "HPQ",
+"cik": 47217,
+"nom": "HP INC",
+"secteur": "Information Technology",
+"industrie": "Technology Hardware, Storage & Peripherals"
+},
+{
+"ticker": "HUBB",
+"cik": 48898,
+"nom": "HUBBELL INC",
+"secteur": "Industrials",
+"industrie": "Industrial Machinery & Supplies & Components"
+},
+{
+"ticker": "HUM",
+"cik": 49071,
+"nom": "HUMANA INC",
+"secteur": "Health Care",
+"industrie": "Managed Health Care"
+},
+{
+"ticker": "HBAN",
+"cik": 49196,
+"nom": "HUNTINGTON BANCSHARES INC /MD/",
+"secteur": "Financials",
+"industrie": "Regional Banks"
+},
+{
+"ticker": "HII",
+"cik": 1501585,
+"nom": "HUNTINGTON INGALLS INDUSTRIES, INC.",
+"secteur": "Industrials",
+"industrie": "Aerospace & Defense"
+},
+{
+"ticker": "IBM",
+"cik": 51143,
+"nom": "INTERNATIONAL BUSINESS MACHINES CORP",
+"secteur": "Information Technology",
+"industrie": "IT Consulting & Other Services"
+},
+{
+"ticker": "IEX",
+"cik": 832101,
+"nom": "IDEX CORP /DE/",
+"secteur": "Industrials",
+"industrie": "Industrial Machinery & Supplies & Components"
+},
+{
+"ticker": "IDXX",
+"cik": 874716,
+"nom": "IDEXX LABORATORIES INC /DE",
+"secteur": "Health Care",
+"industrie": "Health Care Equipment"
+},
+{
+"ticker": "ITW",
+"cik": 49826,
+"nom": "ILLINOIS TOOL WORKS INC",
+"secteur": "Industrials",
+"industrie": "Industrial Machinery & Supplies & Components"
+},
+{
+"ticker": "INCY",
+"cik": 879169,
+"nom": "INCYTE CORP",
+"secteur": "Health Care",
+"industrie": "Biotechnology"
+},
+{
+"ticker": "IR",
+"cik": 1699150,
+"nom": "Ingersoll Rand Inc.",
+"secteur": "Industrials",
+"industrie": "Industrial Machinery & Supplies & Components"
+},
+{
+"ticker": "PODD",
+"cik": 1145197,
+"nom": "INSULET CORP",
+"secteur": "Health Care",
+"industrie": "Health Care Equipment"
+},
+{
+"ticker": "INTC",
+"cik": 50863,
+"nom": "INTEL CORP",
+"secteur": "Information Technology",
+"industrie": "Semiconductors"
+},
+{
+"ticker": "IBKR",
+"cik": 1381197,
+"nom": "Interactive Brokers Group, Inc.",
+"secteur": "Financials",
+"industrie": "Investment Banking & Brokerage"
+},
+{
+"ticker": "ICE",
+"cik": 1571949,
+"nom": "Intercontinental Exchange, Inc.",
+"secteur": "Financials",
+"industrie": "Financial Exchanges & Data"
+},
+{
+"ticker": "IFF",
+"cik": 51253,
+"nom": "INTERNATIONAL FLAVORS & FRAGRANCES INC",
+"secteur": "Materials",
+"industrie": "Specialty Chemicals"
+},
+{
+"ticker": "IP",
+"cik": 51434,
+"nom": "INTERNATIONAL PAPER CO /NEW/",
+"secteur": "Materials",
+"industrie": "Paper & Plastic Packaging Products & Materials"
+},
+{
+"ticker": "INTU",
+"cik": 896878,
+"nom": "INTUIT INC.",
+"secteur": "Information Technology",
+"industrie": "Application Software"
+},
+{
+"ticker": "ISRG",
+"cik": 1035267,
+"nom": "INTUITIVE SURGICAL INC",
+"secteur": "Health Care",
+"industrie": "Health Care Equipment"
+},
+{
+"ticker": "IVZ",
+"cik": 914208,
+"nom": "Invesco Ltd.",
+"secteur": "Financials",
+"industrie": "Asset Management & Custody Banks"
+},
+{
+"ticker": "INVH",
+"cik": 1687229,
+"nom": "Invitation Homes Inc.",
+"secteur": "Real Estate",
+"industrie": "Single-Family Residential REITs"
+},
+{
+"ticker": "IQV",
+"cik": 1478242,
+"nom": "IQVIA HOLDINGS INC.",
+"secteur": "Health Care",
+"industrie": "Life Sciences Tools & Services"
+},
+{
+"ticker": "IRM",
+"cik": 1020569,
+"nom": "IRON MOUNTAIN INC",
+"secteur": "Real Estate",
+"industrie": "Other Specialized REITs"
+},
+{
+"ticker": "JBHT",
+"cik": 728535,
+"nom": "HUNT J B TRANSPORT SERVICES INC",
+"secteur": "Industrials",
+"industrie": "Cargo Ground Transportation"
+},
+{
+"ticker": "JBL",
+"cik": 898293,
+"nom": "JABIL INC",
+"secteur": "Information Technology",
+"industrie": "Electronic Manufacturing Services"
+},
+{
+"ticker": "JKHY",
+"cik": 779152,
+"nom": "JACK HENRY & ASSOCIATES INC",
+"secteur": "Financials",
+"industrie": "Transaction & Payment Processing Services"
+},
+{
+"ticker": "J",
+"cik": 52988,
+"nom": "JACOBS SOLUTIONS INC.",
+"secteur": "Industrials",
+"industrie": "Construction & Engineering"
+},
+{
+"ticker": "JNJ",
+"cik": 200406,
+"nom": "JOHNSON & JOHNSON",
+"secteur": "Health Care",
+"industrie": "Pharmaceuticals"
+},
+{
+"ticker": "JCI",
+"cik": 833444,
+"nom": "Johnson Controls International plc",
+"secteur": "Industrials",
+"industrie": "Building Products"
+},
+{
+"ticker": "JPM",
+"cik": 19617,
+"nom": "JPMORGAN CHASE & CO",
+"secteur": "Financials",
+"industrie": "Diversified Banks"
+},
+{
+"ticker": "KVUE",
+"cik": 1944048,
+"nom": "Kenvue Inc.",
+"secteur": "Consumer Staples",
+"industrie": "Personal Care Products"
+},
+{
+"ticker": "KDP",
+"cik": 1418135,
+"nom": "Keurig Dr Pepper Inc.",
+"secteur": "Consumer Staples",
+"industrie": "Soft Drinks & Non-alcoholic Beverages"
+},
+{
+"ticker": "KEY",
+"cik": 91576,
+"nom": "KEYCORP /NEW/",
+"secteur": "Financials",
+"industrie": "Regional Banks"
+},
+{
+"ticker": "KEYS",
+"cik": 1601046,
+"nom": "Keysight Technologies, Inc.",
+"secteur": "Information Technology",
+"industrie": "Electronic Equipment & Instruments"
+},
+{
+"ticker": "KMB",
+"cik": 55785,
+"nom": "KIMBERLY CLARK CORP",
+"secteur": "Consumer Staples",
+"industrie": "Household Products"
+},
+{
+"ticker": "KIM",
+"cik": 879101,
+"nom": "KIMCO REALTY CORP",
+"secteur": "Real Estate",
+"industrie": "Retail REITs"
+},
+{
+"ticker": "KMI",
+"cik": 1506307,
+"nom": "KINDER MORGAN, INC.",
+"secteur": "Energy",
+"industrie": "Oil & Gas Storage & Transportation"
+},
+{
+"ticker": "KKR",
+"cik": 1404912,
+"nom": "KKR & Co. Inc.",
+"secteur": "Financials",
+"industrie": "Asset Management & Custody Banks"
+},
+{
+"ticker": "KLAC",
+"cik": 319201,
+"nom": "KLA CORP",
+"secteur": "Information Technology",
+"industrie": "Semiconductor Materials & Equipment"
+},
+{
+"ticker": "KHC",
+"cik": 1637459,
+"nom": "Kraft Heinz Co",
+"secteur": "Consumer Staples",
+"industrie": "Packaged Foods & Meats"
+},
+{
+"ticker": "KR",
+"cik": 56873,
+"nom": "KROGER CO",
+"secteur": "Consumer Staples",
+"industrie": "Food Retail"
+},
+{
+"ticker": "LHX",
+"cik": 202058,
+"nom": "L3HARRIS TECHNOLOGIES, INC. /DE/",
+"secteur": "Industrials",
+"industrie": "Aerospace & Defense"
+},
+{
+"ticker": "LH",
+"cik": 920148,
+"nom": "LABCORP HOLDINGS INC.",
+"secteur": "Health Care",
+"industrie": "Health Care Services"
+},
+{
+"ticker": "LRCX",
+"cik": 707549,
+"nom": "LAM RESEARCH CORP",
+"secteur": "Information Technology",
+"industrie": "Semiconductor Materials & Equipment"
+},
+{
+"ticker": "LVS",
+"cik": 1300514,
+"nom": "LAS VEGAS SANDS CORP",
+"secteur": "Consumer Discretionary",
+"industrie": "Casinos & Gaming"
+},
+{
+"ticker": "LDOS",
+"cik": 1336920,
+"nom": "Leidos Holdings, Inc.",
+"secteur": "Industrials",
+"industrie": "Diversified Support Services"
+},
+{
+"ticker": "LEN",
+"cik": 920760,
+"nom": "LENNAR CORP /NEW/",
+"secteur": "Consumer Discretionary",
+"industrie": "Homebuilding"
+},
+{
+"ticker": "LII",
+"cik": 1069202,
+"nom": "LENNOX INTERNATIONAL INC",
+"secteur": "Industrials",
+"industrie": "Building Products"
+},
+{
+"ticker": "LLY",
+"cik": 59478,
+"nom": "ELI LILLY & Co",
+"secteur": "Health Care",
+"industrie": "Pharmaceuticals"
+},
+{
+"ticker": "LIN",
+"cik": 1707925,
+"nom": "LINDE PLC",
+"secteur": "Materials",
+"industrie": "Industrial Gases"
+},
+{
+"ticker": "LYV",
+"cik": 1335258,
+"nom": "Live Nation Entertainment, Inc.",
+"secteur": "Communication Services",
+"industrie": "Movies & Entertainment"
+},
+{
+"ticker": "LMT",
+"cik": 936468,
+"nom": "LOCKHEED MARTIN CORP",
+"secteur": "Industrials",
+"industrie": "Aerospace & Defense"
+},
+{
+"ticker": "L",
+"cik": 60086,
+"nom": "LOEWS CORP",
+"secteur": "Financials",
+"industrie": "Multi-line Insurance"
+},
+{
+"ticker": "LOW",
+"cik": 60667,
+"nom": "LOWES COMPANIES INC",
+"secteur": "Consumer Discretionary",
+"industrie": "Home Improvement Retail"
+},
+{
+"ticker": "LULU",
+"cik": 1397187,
+"nom": "lululemon athletica inc.",
+"secteur": "Consumer Discretionary",
+"industrie": "Apparel, Accessories & Luxury Goods"
+},
+{
+"ticker": "LITE",
+"cik": 1633978,
+"nom": "Lumentum Holdings Inc.",
+"secteur": "Information Technology",
+"industrie": "Communications Equipment"
+},
+{
+"ticker": "LYB",
+"cik": 1489393,
+"nom": "LyondellBasell Industries N.V.",
+"secteur": "Materials",
+"industrie": "Specialty Chemicals"
+},
+{
+"ticker": "MTB",
+"cik": 36270,
+"nom": "M&T BANK CORP",
+"secteur": "Financials",
+"industrie": "Regional Banks"
+},
+{
+"ticker": "MPC",
+"cik": 1510295,
+"nom": "Marathon Petroleum Corp",
+"secteur": "Energy",
+"industrie": "Oil & Gas Refining & Marketing"
+},
+{
+"ticker": "MAR",
+"cik": 1048286,
+"nom": "MARRIOTT INTERNATIONAL INC /MD/",
+"secteur": "Consumer Discretionary",
+"industrie": "Hotels, Resorts & Cruise Lines"
+},
+{
+"ticker": "MRSH",
+"cik": 62709,
+"nom": "MARSH & MCLENNAN COMPANIES, INC.",
+"secteur": "Financials",
+"industrie": "Insurance Brokers"
+},
+{
+"ticker": "MLM",
+"cik": 916076,
+"nom": "MARTIN MARIETTA MATERIALS INC",
+"secteur": "Materials",
+"industrie": "Construction Materials"
+},
+{
+"ticker": "MRVL",
+"cik": 1835632,
+"nom": "Marvell Technology, Inc.",
+"secteur": "Information Technology",
+"industrie": "Semiconductors"
+},
+{
+"ticker": "MAS",
+"cik": 62996,
+"nom": "MASCO CORP /DE/",
+"secteur": "Industrials",
+"industrie": "Building Products"
+},
+{
+"ticker": "MA",
+"cik": 1141391,
+"nom": "Mastercard Inc",
+"secteur": "Financials",
+"industrie": "Transaction & Payment Processing Services"
+},
+{
+"ticker": "MKC",
+"cik": 63754,
+"nom": "MCCORMICK & CO INC",
+"secteur": "Consumer Staples",
+"industrie": "Packaged Foods & Meats"
+},
+{
+"ticker": "MCD",
+"cik": 63908,
+"nom": "MCDONALDS CORP",
+"secteur": "Consumer Discretionary",
+"industrie": "Restaurants"
+},
+{
+"ticker": "MCK",
+"cik": 927653,
+"nom": "MCKESSON CORP",
+"secteur": "Health Care",
+"industrie": "Health Care Distributors"
+},
+{
+"ticker": "MDT",
+"cik": 1613103,
+"nom": "Medtronic plc",
+"secteur": "Health Care",
+"industrie": "Health Care Equipment"
+},
+{
+"ticker": "MRK",
+"cik": 310158,
+"nom": "Merck & Co., Inc.",
+"secteur": "Health Care",
+"industrie": "Pharmaceuticals"
+},
+{
+"ticker": "META",
+"cik": 1326801,
+"nom": "Meta Platforms, Inc.",
+"secteur": "Communication Services",
+"industrie": "Interactive Media & Services"
+},
+{
+"ticker": "MET",
+"cik": 1099219,
+"nom": "METLIFE INC",
+"secteur": "Financials",
+"industrie": "Life & Health Insurance"
+},
+{
+"ticker": "MTD",
+"cik": 1037646,
+"nom": "METTLER TOLEDO INTERNATIONAL INC/",
+"secteur": "Health Care",
+"industrie": "Life Sciences Tools & Services"
+},
+{
+"ticker": "MGM",
+"cik": 789570,
+"nom": "MGM Resorts International",
+"secteur": "Consumer Discretionary",
+"industrie": "Casinos & Gaming"
+},
+{
+"ticker": "MCHP",
+"cik": 827054,
+"nom": "MICROCHIP TECHNOLOGY INC",
+"secteur": "Information Technology",
+"industrie": "Semiconductors"
+},
+{
+"ticker": "MU",
+"cik": 723125,
+"nom": "MICRON TECHNOLOGY INC",
+"secteur": "Information Technology",
+"industrie": "Semiconductors"
+},
+{
+"ticker": "MSFT",
+"cik": 789019,
+"nom": "MICROSOFT CORP",
+"secteur": "Information Technology",
+"industrie": "Systems Software"
+},
+{
+"ticker": "MAA",
+"cik": 912595,
+"nom": "MID AMERICA APARTMENT COMMUNITIES INC.",
+"secteur": "Real Estate",
+"industrie": "Multi-Family Residential REITs"
+},
+{
+"ticker": "MRNA",
+"cik": 1682852,
+"nom": "Moderna, Inc.",
+"secteur": "Health Care",
+"industrie": "Biotechnology"
+},
+{
+"ticker": "TAP",
+"cik": 24545,
+"nom": "MOLSON COORS BEVERAGE CO",
+"secteur": "Consumer Staples",
+"industrie": "Brewers"
+},
+{
+"ticker": "MDLZ",
+"cik": 1103982,
+"nom": "Mondelez International, Inc.",
+"secteur": "Consumer Staples",
+"industrie": "Packaged Foods & Meats"
+},
+{
+"ticker": "MPWR",
+"cik": 1280452,
+"nom": "MONOLITHIC POWER SYSTEMS, INC.",
+"secteur": "Information Technology",
+"industrie": "Semiconductors"
+},
+{
+"ticker": "MNST",
+"cik": 865752,
+"nom": "Monster Beverage Corp",
+"secteur": "Consumer Staples",
+"industrie": "Soft Drinks & Non-alcoholic Beverages"
+},
+{
+"ticker": "MCO",
+"cik": 1059556,
+"nom": "MOODYS CORP /DE/",
+"secteur": "Financials",
+"industrie": "Financial Exchanges & Data"
+},
+{
+"ticker": "MS",
+"cik": 895421,
+"nom": "MORGAN STANLEY",
+"secteur": "Financials",
+"industrie": "Investment Banking & Brokerage"
+},
+{
+"ticker": "MOS",
+"cik": 1285785,
+"nom": "MOSAIC CO",
+"secteur": "Materials",
+"industrie": "Fertilizers & Agricultural Chemicals"
+},
+{
+"ticker": "MSI",
+"cik": 68505,
+"nom": "Motorola Solutions, Inc.",
+"secteur": "Information Technology",
+"industrie": "Communications Equipment"
+},
+{
+"ticker": "MSCI",
+"cik": 1408198,
+"nom": "MSCI Inc.",
+"secteur": "Financials",
+"industrie": "Financial Exchanges & Data"
+},
+{
+"ticker": "NDAQ",
+"cik": 1120193,
+"nom": "NASDAQ, INC.",
+"secteur": "Financials",
+"industrie": "Financial Exchanges & Data"
+},
+{
+"ticker": "NTAP",
+"cik": 1002047,
+"nom": "NetApp, Inc.",
+"secteur": "Information Technology",
+"industrie": "Technology Hardware, Storage & Peripherals"
+},
+{
+"ticker": "NFLX",
+"cik": 1065280,
+"nom": "NETFLIX INC",
+"secteur": "Communication Services",
+"industrie": "Movies & Entertainment"
+},
+{
+"ticker": "NEM",
+"cik": 1164727,
+"nom": "NEWMONT Corp /DE/",
+"secteur": "Materials",
+"industrie": "Gold"
+},
+{
+"ticker": "NWSA",
+"cik": 1564708,
+"nom": "NEWS CORP",
+"secteur": "Communication Services",
+"industrie": "Publishing"
+},
+{
+"ticker": "NWS",
+"cik": 1564708,
+"nom": "NEWS CORP",
+"secteur": "Communication Services",
+"industrie": "Publishing"
+},
+{
+"ticker": "NEE",
+"cik": 753308,
+"nom": "NEXTERA ENERGY INC",
+"secteur": "Utilities",
+"industrie": "Multi-Utilities"
+},
+{
+"ticker": "NKE",
+"cik": 320187,
+"nom": "NIKE, Inc.",
+"secteur": "Consumer Discretionary",
+"industrie": "Apparel, Accessories & Luxury Goods"
+},
+{
+"ticker": "NI",
+"cik": 1111711,
+"nom": "NISOURCE INC.",
+"secteur": "Utilities",
+"industrie": "Multi-Utilities"
+},
+{
+"ticker": "NDSN",
+"cik": 72331,
+"nom": "NORDSON CORP",
+"secteur": "Industrials",
+"industrie": "Industrial Machinery & Supplies & Components"
+},
+{
+"ticker": "NSC",
+"cik": 702165,
+"nom": "NORFOLK SOUTHERN CORP",
+"secteur": "Industrials",
+"industrie": "Rail Transportation"
+},
+{
+"ticker": "NTRS",
+"cik": 73124,
+"nom": "NORTHERN TRUST CORP",
+"secteur": "Financials",
+"industrie": "Asset Management & Custody Banks"
+},
+{
+"ticker": "NOC",
+"cik": 1133421,
+"nom": "NORTHROP GRUMMAN CORP /DE/",
+"secteur": "Industrials",
+"industrie": "Aerospace & Defense"
+},
+{
+"ticker": "NCLH",
+"cik": 1513761,
+"nom": "Norwegian Cruise Line Holdings Ltd.",
+"secteur": "Consumer Discretionary",
+"industrie": "Hotels, Resorts & Cruise Lines"
+},
+{
+"ticker": "NRG",
+"cik": 1013871,
+"nom": "NRG ENERGY, INC.",
+"secteur": "Utilities",
+"industrie": "Independent Power Producers & Energy Traders"
+},
+{
+"ticker": "NUE",
+"cik": 73309,
+"nom": "NUCOR CORP",
+"secteur": "Materials",
+"industrie": "Steel"
+},
+{
+"ticker": "NVDA",
+"cik": 1045810,
+"nom": "NVIDIA CORP",
+"secteur": "Information Technology",
+"industrie": "Semiconductors"
+},
+{
+"ticker": "NVR",
+"cik": 906163,
+"nom": "NVR INC",
+"secteur": "Consumer Discretionary",
+"industrie": "Homebuilding"
+},
+{
+"ticker": "NXPI",
+"cik": 1413447,
+"nom": "NXP Semiconductors N.V.",
+"secteur": "Information Technology",
+"industrie": "Semiconductors"
+},
+{
+"ticker": "ORLY",
+"cik": 898173,
+"nom": "O REILLY AUTOMOTIVE INC",
+"secteur": "Consumer Discretionary",
+"industrie": "Automotive Retail"
+},
+{
+"ticker": "OXY",
+"cik": 797468,
+"nom": "OCCIDENTAL PETROLEUM CORP /DE/",
+"secteur": "Energy",
+"industrie": "Oil & Gas Exploration & Production"
+},
+{
+"ticker": "ODFL",
+"cik": 878927,
+"nom": "OLD DOMINION FREIGHT LINE, INC.",
+"secteur": "Industrials",
+"industrie": "Cargo Ground Transportation"
+},
+{
+"ticker": "OMC",
+"cik": 29989,
+"nom": "OMNICOM GROUP INC.",
+"secteur": "Communication Services",
+"industrie": "Advertising"
+},
+{
+"ticker": "ON",
+"cik": 1097864,
+"nom": "ON SEMICONDUCTOR CORP",
+"secteur": "Information Technology",
+"industrie": "Semiconductors"
+},
+{
+"ticker": "OKE",
+"cik": 1039684,
+"nom": "ONEOK INC /NEW/",
+"secteur": "Energy",
+"industrie": "Oil & Gas Storage & Transportation"
+},
+{
+"ticker": "ORCL",
+"cik": 1341439,
+"nom": "ORACLE CORP",
+"secteur": "Information Technology",
+"industrie": "Application Software"
+},
+{
+"ticker": "OTIS",
+"cik": 1781335,
+"nom": "Otis Worldwide Corp",
+"secteur": "Industrials",
+"industrie": "Industrial Machinery & Supplies & Components"
+},
+{
+"ticker": "PCAR",
+"cik": 75362,
+"nom": "PACCAR INC",
+"secteur": "Industrials",
+"industrie": "Construction Machinery & Heavy Transportation Equipment"
+},
+{
+"ticker": "PKG",
+"cik": 75677,
+"nom": "PACKAGING CORP OF AMERICA",
+"secteur": "Materials",
+"industrie": "Paper & Plastic Packaging Products & Materials"
+},
+{
+"ticker": "PLTR",
+"cik": 1321655,
+"nom": "Palantir Technologies Inc.",
+"secteur": "Information Technology",
+"industrie": "Application Software"
+},
+{
+"ticker": "PANW",
+"cik": 1327567,
+"nom": "Palo Alto Networks Inc",
+"secteur": "Information Technology",
+"industrie": "Systems Software"
+},
+{
+"ticker": "PSKY",
+"cik": 2041610,
+"nom": "Paramount Skydance Corp",
+"secteur": "Communication Services",
+"industrie": "Movies & Entertainment"
+},
+{
+"ticker": "PH",
+"cik": 76334,
+"nom": "Parker-Hannifin Corp",
+"secteur": "Industrials",
+"industrie": "Industrial Machinery & Supplies & Components"
+},
+{
+"ticker": "PAYX",
+"cik": 723531,
+"nom": "PAYCHEX INC",
+"secteur": "Industrials",
+"industrie": "Human Resource & Employment Services"
+},
+{
+"ticker": "PYPL",
+"cik": 1633917,
+"nom": "PayPal Holdings, Inc.",
+"secteur": "Financials",
+"industrie": "Transaction & Payment Processing Services"
+},
+{
+"ticker": "PNR",
+"cik": 77360,
+"nom": "PENTAIR plc",
+"secteur": "Industrials",
+"industrie": "Industrial Machinery & Supplies & Components"
+},
+{
+"ticker": "PEP",
+"cik": 77476,
+"nom": "PEPSICO INC",
+"secteur": "Consumer Staples",
+"industrie": "Soft Drinks & Non-alcoholic Beverages"
+},
+{
+"ticker": "PFE",
+"cik": 78003,
+"nom": "PFIZER INC",
+"secteur": "Health Care",
+"industrie": "Pharmaceuticals"
+},
+{
+"ticker": "PCG",
+"cik": 1004980,
+"nom": "PG&E Corp",
+"secteur": "Utilities",
+"industrie": "Multi-Utilities"
+},
+{
+"ticker": "PM",
+"cik": 1413329,
+"nom": "Philip Morris International Inc.",
+"secteur": "Consumer Staples",
+"industrie": "Tobacco"
+},
+{
+"ticker": "PSX",
+"cik": 1534701,
+"nom": "Phillips 66",
+"secteur": "Energy",
+"industrie": "Oil & Gas Refining & Marketing"
+},
+{
+"ticker": "PNW",
+"cik": 764622,
+"nom": "PINNACLE WEST CAPITAL CORP",
+"secteur": "Utilities",
+"industrie": "Multi-Utilities"
+},
+{
+"ticker": "PNC",
+"cik": 713676,
+"nom": "PNC FINANCIAL SERVICES GROUP, INC.",
+"secteur": "Financials",
+"industrie": "Diversified Banks"
+},
+{
+"ticker": "PPG",
+"cik": 79879,
+"nom": "PPG INDUSTRIES INC",
+"secteur": "Materials",
+"industrie": "Specialty Chemicals"
+},
+{
+"ticker": "PPL",
+"cik": 922224,
+"nom": "PPL Corp",
+"secteur": "Utilities",
+"industrie": "Electric Utilities"
+},
+{
+"ticker": "PFG",
+"cik": 1126328,
+"nom": "PRINCIPAL FINANCIAL GROUP INC",
+"secteur": "Financials",
+"industrie": "Life & Health Insurance"
+},
+{
+"ticker": "PG",
+"cik": 80424,
+"nom": "PROCTER & GAMBLE Co",
+"secteur": "Consumer Staples",
+"industrie": "Personal Care Products"
+},
+{
+"ticker": "PGR",
+"cik": 80661,
+"nom": "PROGRESSIVE CORP/OH/",
+"secteur": "Financials",
+"industrie": "Property & Casualty Insurance"
+},
+{
+"ticker": "PLD",
+"cik": 1045609,
+"nom": "Prologis, Inc.",
+"secteur": "Real Estate",
+"industrie": "Industrial REITs"
+},
+{
+"ticker": "PRU",
+"cik": 1137774,
+"nom": "PRUDENTIAL FINANCIAL INC",
+"secteur": "Financials",
+"industrie": "Life & Health Insurance"
+},
+{
+"ticker": "PEG",
+"cik": 788784,
+"nom": "PUBLIC SERVICE ENTERPRISE GROUP INC",
+"secteur": "Utilities",
+"industrie": "Electric Utilities"
+},
+{
+"ticker": "PTC",
+"cik": 857005,
+"nom": "PTC INC.",
+"secteur": "Information Technology",
+"industrie": "Application Software"
+},
+{
+"ticker": "PSA",
+"cik": 1393311,
+"nom": "Public Storage",
+"secteur": "Real Estate",
+"industrie": "Self-Storage REITs"
+},
+{
+"ticker": "PHM",
+"cik": 822416,
+"nom": "PULTEGROUP INC/MI/",
+"secteur": "Consumer Discretionary",
+"industrie": "Homebuilding"
+},
+{
+"ticker": "PWR",
+"cik": 1050915,
+"nom": "QUANTA SERVICES, INC.",
+"secteur": "Industrials",
+"industrie": "Construction & Engineering"
+},
+{
+"ticker": "QCOM",
+"cik": 804328,
+"nom": "QUALCOMM INC/DE",
+"secteur": "Information Technology",
+"industrie": "Semiconductors"
+},
+{
+"ticker": "DGX",
+"cik": 1022079,
+"nom": "QUEST DIAGNOSTICS INC",
+"secteur": "Health Care",
+"industrie": "Health Care Services"
+},
+{
+"ticker": "Q",
+"cik": 2058873,
+"nom": "Qnity Electronics, Inc.",
+"secteur": "Information Technology",
+"industrie": "Semiconductor Materials & Equipment"
+},
+{
+"ticker": "RL",
+"cik": 1037038,
+"nom": "RALPH LAUREN CORP",
+"secteur": "Consumer Discretionary",
+"industrie": "Apparel, Accessories & Luxury Goods"
+},
+{
+"ticker": "RJF",
+"cik": 720005,
+"nom": "RAYMOND JAMES FINANCIAL INC",
+"secteur": "Financials",
+"industrie": "Investment Banking & Brokerage"
+},
+{
+"ticker": "RTX",
+"cik": 101829,
+"nom": "RTX Corp",
+"secteur": "Industrials",
+"industrie": "Aerospace & Defense"
+},
+{
+"ticker": "O",
+"cik": 726728,
+"nom": "REALTY INCOME CORP",
+"secteur": "Real Estate",
+"industrie": "Retail REITs"
+},
+{
+"ticker": "REG",
+"cik": 910606,
+"nom": "REGENCY CENTERS CORP",
+"secteur": "Real Estate",
+"industrie": "Retail REITs"
+},
+{
+"ticker": "REGN",
+"cik": 872589,
+"nom": "REGENERON PHARMACEUTICALS, INC.",
+"secteur": "Health Care",
+"industrie": "Biotechnology"
+},
+{
+"ticker": "RF",
+"cik": 1281761,
+"nom": "REGIONS FINANCIAL CORP",
+"secteur": "Financials",
+"industrie": "Regional Banks"
+},
+{
+"ticker": "RSG",
+"cik": 1060391,
+"nom": "REPUBLIC SERVICES, INC.",
+"secteur": "Industrials",
+"industrie": "Environmental & Facilities Services"
+},
+{
+"ticker": "RMD",
+"cik": 943819,
+"nom": "RESMED INC",
+"secteur": "Health Care",
+"industrie": "Health Care Equipment"
+},
+{
+"ticker": "RVTY",
+"cik": 31791,
+"nom": "REVVITY, INC.",
+"secteur": "Health Care",
+"industrie": "Health Care Equipment"
+},
+{
+"ticker": "HOOD",
+"cik": 1783879,
+"nom": "Robinhood Markets, Inc.",
+"secteur": "Financials",
+"industrie": "Investment Banking & Brokerage"
+},
+{
+"ticker": "ROK",
+"cik": 1024478,
+"nom": "ROCKWELL AUTOMATION, INC",
+"secteur": "Industrials",
+"industrie": "Electrical Components & Equipment"
+},
+{
+"ticker": "ROL",
+"cik": 84839,
+"nom": "ROLLINS INC",
+"secteur": "Industrials",
+"industrie": "Environmental & Facilities Services"
+},
+{
+"ticker": "ROP",
+"cik": 882835,
+"nom": "ROPER TECHNOLOGIES INC",
+"secteur": "Information Technology",
+"industrie": "Electronic Equipment & Instruments"
+},
+{
+"ticker": "ROST",
+"cik": 745732,
+"nom": "ROSS STORES, INC.",
+"secteur": "Consumer Discretionary",
+"industrie": "Apparel Retail"
+},
+{
+"ticker": "RCL",
+"cik": 884887,
+"nom": "ROYAL CARIBBEAN CRUISES LTD",
+"secteur": "Consumer Discretionary",
+"industrie": "Hotels, Resorts & Cruise Lines"
+},
+{
+"ticker": "SPGI",
+"cik": 64040,
+"nom": "S&P Global Inc.",
+"secteur": "Financials",
+"industrie": "Financial Exchanges & Data"
+},
+{
+"ticker": "CRM",
+"cik": 1108524,
+"nom": "Salesforce, Inc.",
+"secteur": "Information Technology",
+"industrie": "Application Software"
+},
+{
+"ticker": "SNDK",
+"cik": 2023554,
+"nom": "Sandisk Corp",
+"secteur": "Information Technology",
+"industrie": "Technology Hardware, Storage & Peripherals"
+},
+{
+"ticker": "SBAC",
+"cik": 1034054,
+"nom": "SBA COMMUNICATIONS CORP",
+"secteur": "Real Estate",
+"industrie": "Telecom Tower REITs"
+},
+{
+"ticker": "SLB",
+"cik": 87347,
+"nom": "SLB LIMITED/NV",
+"secteur": "Energy",
+"industrie": "Oil & Gas Equipment & Services"
+},
+{
+"ticker": "STX",
+"cik": 1137789,
+"nom": "Seagate Technology Holdings plc",
+"secteur": "Information Technology",
+"industrie": "Technology Hardware, Storage & Peripherals"
+},
+{
+"ticker": "SRE",
+"cik": 1032208,
+"nom": "SEMPRA",
+"secteur": "Utilities",
+"industrie": "Multi-Utilities"
+},
+{
+"ticker": "NOW",
+"cik": 1373715,
+"nom": "ServiceNow, Inc.",
+"secteur": "Information Technology",
+"industrie": "Systems Software"
+},
+{
+"ticker": "SHW",
+"cik": 89800,
+"nom": "SHERWIN WILLIAMS CO",
+"secteur": "Materials",
+"industrie": "Specialty Chemicals"
+},
+{
+"ticker": "SPG",
+"cik": 1063761,
+"nom": "SIMON PROPERTY GROUP INC.",
+"secteur": "Real Estate",
+"industrie": "Retail REITs"
+},
+{
+"ticker": "SWKS",
+"cik": 4127,
+"nom": "SKYWORKS SOLUTIONS, INC.",
+"secteur": "Information Technology",
+"industrie": "Semiconductors"
+},
+{
+"ticker": "SJM",
+"cik": 91419,
+"nom": "J M SMUCKER Co",
+"secteur": "Consumer Staples",
+"industrie": "Packaged Foods & Meats"
+},
+{
+"ticker": "SW",
+"cik": 2005951,
+"nom": "Smurfit Westrock plc",
+"secteur": "Materials",
+"industrie": "Paper & Plastic Packaging Products & Materials"
+},
+{
+"ticker": "SNA",
+"cik": 91440,
+"nom": "Snap-on Inc",
+"secteur": "Industrials",
+"industrie": "Industrial Machinery & Supplies & Components"
+},
+{
+"ticker": "SOLV",
+"cik": 1964738,
+"nom": "Solventum Corp",
+"secteur": "Health Care",
+"industrie": "Health Care Technology"
+},
+{
+"ticker": "SO",
+"cik": 92122,
+"nom": "SOUTHERN CO",
+"secteur": "Utilities",
+"industrie": "Electric Utilities"
+},
+{
+"ticker": "LUV",
+"cik": 92380,
+"nom": "SOUTHWEST AIRLINES CO",
+"secteur": "Industrials",
+"industrie": "Passenger Airlines"
+},
+{
+"ticker": "SWK",
+"cik": 93556,
+"nom": "STANLEY BLACK & DECKER, INC.",
+"secteur": "Industrials",
+"industrie": "Industrial Machinery & Supplies & Components"
+},
+{
+"ticker": "SBUX",
+"cik": 829224,
+"nom": "STARBUCKS CORP",
+"secteur": "Consumer Discretionary",
+"industrie": "Restaurants"
+},
+{
+"ticker": "STT",
+"cik": 93751,
+"nom": "STATE STREET CORP",
+"secteur": "Financials",
+"industrie": "Asset Management & Custody Banks"
+},
+{
+"ticker": "STLD",
+"cik": 1022671,
+"nom": "STEEL DYNAMICS INC",
+"secteur": "Materials",
+"industrie": "Steel"
+},
+{
+"ticker": "STE",
+"cik": 1757898,
+"nom": "STERIS plc",
+"secteur": "Health Care",
+"industrie": "Health Care Equipment"
+},
+{
+"ticker": "SYK",
+"cik": 310764,
+"nom": "STRYKER CORP",
+"secteur": "Health Care",
+"industrie": "Health Care Equipment"
+},
+{
+"ticker": "SMCI",
+"cik": 1375365,
+"nom": "Super Micro Computer, Inc.",
+"secteur": "Information Technology",
+"industrie": "Technology Hardware, Storage & Peripherals"
+},
+{
+"ticker": "SYF",
+"cik": 1601712,
+"nom": "Synchrony Financial",
+"secteur": "Financials",
+"industrie": "Consumer Finance"
+},
+{
+"ticker": "SNPS",
+"cik": 883241,
+"nom": "SYNOPSYS INC",
+"secteur": "Information Technology",
+"industrie": "Application Software"
+},
+{
+"ticker": "SYY",
+"cik": 96021,
+"nom": "SYSCO CORP",
+"secteur": "Consumer Staples",
+"industrie": "Food Distributors"
+},
+{
+"ticker": "TMUS",
+"cik": 1283699,
+"nom": "T-Mobile US, Inc.",
+"secteur": "Communication Services",
+"industrie": "Wireless Telecommunication Services"
+},
+{
+"ticker": "TROW",
+"cik": 1113169,
+"nom": "PRICE T ROWE GROUP INC",
+"secteur": "Financials",
+"industrie": "Asset Management & Custody Banks"
+},
+{
+"ticker": "TTWO",
+"cik": 946581,
+"nom": "TAKE TWO INTERACTIVE SOFTWARE INC",
+"secteur": "Communication Services",
+"industrie": "Interactive Home Entertainment"
+},
+{
+"ticker": "TPR",
+"cik": 1116132,
+"nom": "TAPESTRY, INC.",
+"secteur": "Consumer Discretionary",
+"industrie": "Apparel, Accessories & Luxury Goods"
+},
+{
+"ticker": "TRGP",
+"cik": 1389170,
+"nom": "Targa Resources Corp.",
+"secteur": "Energy",
+"industrie": "Oil & Gas Storage & Transportation"
+},
+{
+"ticker": "TGT",
+"cik": 27419,
+"nom": "TARGET CORP",
+"secteur": "Consumer Staples",
+"industrie": "Consumer Staples Merchandise Retail"
+},
+{
+"ticker": "TEL",
+"cik": 1385157,
+"nom": "TE Connectivity plc",
+"secteur": "Information Technology",
+"industrie": "Electronic Manufacturing Services"
+},
+{
+"ticker": "TDY",
+"cik": 1094285,
+"nom": "TELEDYNE TECHNOLOGIES INC",
+"secteur": "Information Technology",
+"industrie": "Electronic Equipment & Instruments"
+},
+{
+"ticker": "TER",
+"cik": 97210,
+"nom": "TERADYNE, INC",
+"secteur": "Information Technology",
+"industrie": "Semiconductor Materials & Equipment"
+},
+{
+"ticker": "TSLA",
+"cik": 1318605,
+"nom": "Tesla, Inc.",
+"secteur": "Consumer Discretionary",
+"industrie": "Automobile Manufacturers"
+},
+{
+"ticker": "TXN",
+"cik": 97476,
+"nom": "TEXAS INSTRUMENTS INC",
+"secteur": "Information Technology",
+"industrie": "Semiconductors"
+},
+{
+"ticker": "TPL",
+"cik": 1811074,
+"nom": "Texas Pacific Land Corp",
+"secteur": "Energy",
+"industrie": "Oil & Gas Exploration & Production"
+},
+{
+"ticker": "TXT",
+"cik": 217346,
+"nom": "TEXTRON INC",
+"secteur": "Industrials",
+"industrie": "Aerospace & Defense"
+},
+{
+"ticker": "TMO",
+"cik": 97745,
+"nom": "THERMO FISHER SCIENTIFIC INC.",
+"secteur": "Health Care",
+"industrie": "Life Sciences Tools & Services"
+},
+{
+"ticker": "TJX",
+"cik": 109198,
+"nom": "TJX COMPANIES INC /DE/",
+"secteur": "Consumer Discretionary",
+"industrie": "Apparel Retail"
+},
+{
+"ticker": "TKO",
+"cik": 1973266,
+"nom": "TKO Group Holdings, Inc.",
+"secteur": "Communication Services",
+"industrie": "Movies & Entertainment"
+},
+{
+"ticker": "TTD",
+"cik": 1671933,
+"nom": "Trade Desk, Inc.",
+"secteur": "Communication Services",
+"industrie": "Advertising"
+},
+{
+"ticker": "TSCO",
+"cik": 916365,
+"nom": "TRACTOR SUPPLY CO /DE/",
+"secteur": "Consumer Discretionary",
+"industrie": "Other Specialty Retail"
+},
+{
+"ticker": "TT",
+"cik": 1466258,
+"nom": "Trane Technologies plc",
+"secteur": "Industrials",
+"industrie": "Building Products"
+},
+{
+"ticker": "TDG",
+"cik": 1260221,
+"nom": "TransDigm Group INC",
+"secteur": "Industrials",
+"industrie": "Aerospace & Defense"
+},
+{
+"ticker": "TRV",
+"cik": 86312,
+"nom": "TRAVELERS COMPANIES, INC.",
+"secteur": "Financials",
+"industrie": "Property & Casualty Insurance"
+},
+{
+"ticker": "TRMB",
+"cik": 864749,
+"nom": "TRIMBLE INC.",
+"secteur": "Information Technology",
+"industrie": "Application Software"
+},
+{
+"ticker": "TFC",
+"cik": 92230,
+"nom": "TRUIST FINANCIAL CORP",
+"secteur": "Financials",
+"industrie": "Diversified Banks"
+},
+{
+"ticker": "TYL",
+"cik": 860731,
+"nom": "TYLER TECHNOLOGIES INC",
+"secteur": "Information Technology",
+"industrie": "Application Software"
+},
+{
+"ticker": "TSN",
+"cik": 100493,
+"nom": "TYSON FOODS, INC.",
+"secteur": "Consumer Staples",
+"industrie": "Packaged Foods & Meats"
+},
+{
+"ticker": "USB",
+"cik": 36104,
+"nom": "US BANCORP \\DE\\",
+"secteur": "Financials",
+"industrie": "Diversified Banks"
+},
+{
+"ticker": "UBER",
+"cik": 1543151,
+"nom": "Uber Technologies, Inc",
+"secteur": "Industrials",
+"industrie": "Passenger Ground Transportation"
+},
+{
+"ticker": "UDR",
+"cik": 74208,
+"nom": "UDR, Inc.",
+"secteur": "Real Estate",
+"industrie": "Multi-Family Residential REITs"
+},
+{
+"ticker": "ULTA",
+"cik": 1403568,
+"nom": "Ulta Beauty, Inc.",
+"secteur": "Consumer Discretionary",
+"industrie": "Other Specialty Retail"
+},
+{
+"ticker": "UNP",
+"cik": 100885,
+"nom": "UNION PACIFIC CORP",
+"secteur": "Industrials",
+"industrie": "Rail Transportation"
+},
+{
+"ticker": "UAL",
+"cik": 100517,
+"nom": "United Airlines Holdings, Inc.",
+"secteur": "Industrials",
+"industrie": "Passenger Airlines"
+},
+{
+"ticker": "UPS",
+"cik": 1090727,
+"nom": "UNITED PARCEL SERVICE INC",
+"secteur": "Industrials",
+"industrie": "Air Freight & Logistics"
+},
+{
+"ticker": "URI",
+"cik": 1067701,
+"nom": "UNITED RENTALS, INC.",
+"secteur": "Industrials",
+"industrie": "Trading Companies & Distributors"
+},
+{
+"ticker": "UNH",
+"cik": 731766,
+"nom": "UNITEDHEALTH GROUP INC",
+"secteur": "Health Care",
+"industrie": "Managed Health Care"
+},
+{
+"ticker": "UHS",
+"cik": 352915,
+"nom": "UNIVERSAL HEALTH SERVICES INC",
+"secteur": "Health Care",
+"industrie": "Health Care Facilities"
+},
+{
+"ticker": "VLO",
+"cik": 1035002,
+"nom": "VALERO ENERGY CORP/TX",
+"secteur": "Energy",
+"industrie": "Oil & Gas Refining & Marketing"
+},
+{
+"ticker": "VEEV",
+"cik": 1393052,
+"nom": "VEEVA SYSTEMS INC",
+"secteur": "Health Care",
+"industrie": "Health Care Technology"
+},
+{
+"ticker": "VTR",
+"cik": 740260,
+"nom": "Ventas, Inc.",
+"secteur": "Real Estate",
+"industrie": "Health Care REITs"
+},
+{
+"ticker": "VLTO",
+"cik": 1967680,
+"nom": "Veralto Corp",
+"secteur": "Industrials",
+"industrie": "Environmental & Facilities Services"
+},
+{
+"ticker": "VRSN",
+"cik": 1014473,
+"nom": "VERISIGN INC/CA",
+"secteur": "Information Technology",
+"industrie": "Internet Services & Infrastructure"
+},
+{
+"ticker": "VRSK",
+"cik": 1442145,
+"nom": "Verisk Analytics, Inc.",
+"secteur": "Industrials",
+"industrie": "Research & Consulting Services"
+},
+{
+"ticker": "VZ",
+"cik": 732712,
+"nom": "VERIZON COMMUNICATIONS INC",
+"secteur": "Communication Services",
+"industrie": "Integrated Telecommunication Services"
+},
+{
+"ticker": "VRTX",
+"cik": 875320,
+"nom": "VERTEX PHARMACEUTICALS INC / MA",
+"secteur": "Health Care",
+"industrie": "Biotechnology"
+},
+{
+"ticker": "VRT",
+"cik": 1674101,
+"nom": "Vertiv Holdings Co",
+"secteur": "Industrials",
+"industrie": "Electrical Components & Equipment"
+},
+{
+"ticker": "VTRS",
+"cik": 1792044,
+"nom": "Viatris Inc",
+"secteur": "Health Care",
+"industrie": "Pharmaceuticals"
+},
+{
+"ticker": "VICI",
+"cik": 1705696,
+"nom": "VICI PROPERTIES INC.",
+"secteur": "Real Estate",
+"industrie": "Hotel & Resort REITs"
+},
+{
+"ticker": "V",
+"cik": 1403161,
+"nom": "VISA INC.",
+"secteur": "Financials",
+"industrie": "Transaction & Payment Processing Services"
+},
+{
+"ticker": "VST",
+"cik": 1692819,
+"nom": "Vistra Corp.",
+"secteur": "Utilities",
+"industrie": "Electric Utilities"
+},
+{
+"ticker": "VMC",
+"cik": 1396009,
+"nom": "Vulcan Materials CO",
+"secteur": "Materials",
+"industrie": "Construction Materials"
+},
+{
+"ticker": "WRB",
+"cik": 11544,
+"nom": "BERKLEY W R CORP",
+"secteur": "Financials",
+"industrie": "Property & Casualty Insurance"
+},
+{
+"ticker": "GWW",
+"cik": 277135,
+"nom": "W.W. GRAINGER, INC.",
+"secteur": "Industrials",
+"industrie": "Industrial Machinery & Supplies & Components"
+},
+{
+"ticker": "WAB",
+"cik": 943452,
+"nom": "WESTINGHOUSE AIR BRAKE TECHNOLOGIES CORP",
+"secteur": "Industrials",
+"industrie": "Construction Machinery & Heavy Transportation Equipment"
+},
+{
+"ticker": "WMT",
+"cik": 104169,
+"nom": "Walmart Inc.",
+"secteur": "Consumer Staples",
+"industrie": "Consumer Staples Merchandise Retail"
+},
+{
+"ticker": "DIS",
+"cik": 1744489,
+"nom": "Walt Disney Co",
+"secteur": "Communication Services",
+"industrie": "Movies & Entertainment"
+},
+{
+"ticker": "WBD",
+"cik": 1437107,
+"nom": "Warner Bros. Discovery, Inc.",
+"secteur": "Communication Services",
+"industrie": "Broadcasting"
+},
+{
+"ticker": "WM",
+"cik": 823768,
+"nom": "WASTE MANAGEMENT INC",
+"secteur": "Industrials",
+"industrie": "Environmental & Facilities Services"
+},
+{
+"ticker": "WAT",
+"cik": 1000697,
+"nom": "WATERS CORP /DE/",
+"secteur": "Health Care",
+"industrie": "Life Sciences Tools & Services"
+},
+{
+"ticker": "WEC",
+"cik": 783325,
+"nom": "WEC ENERGY GROUP, INC.",
+"secteur": "Utilities",
+"industrie": "Electric Utilities"
+},
+{
+"ticker": "WFC",
+"cik": 72971,
+"nom": "WELLS FARGO & COMPANY/MN",
+"secteur": "Financials",
+"industrie": "Diversified Banks"
+},
+{
+"ticker": "WELL",
+"cik": 766704,
+"nom": "WELLTOWER INC.",
+"secteur": "Real Estate",
+"industrie": "Health Care REITs"
+},
+{
+"ticker": "WST",
+"cik": 105770,
+"nom": "WEST PHARMACEUTICAL SERVICES INC",
+"secteur": "Health Care",
+"industrie": "Health Care Supplies"
+},
+{
+"ticker": "WDC",
+"cik": 106040,
+"nom": "WESTERN DIGITAL CORP",
+"secteur": "Information Technology",
+"industrie": "Technology Hardware, Storage & Peripherals"
+},
+{
+"ticker": "WY",
+"cik": 106535,
+"nom": "WEYERHAEUSER CO",
+"secteur": "Real Estate",
+"industrie": "Timber REITs"
+},
+{
+"ticker": "WSM",
+"cik": 719955,
+"nom": "WILLIAMS SONOMA INC",
+"secteur": "Consumer Discretionary",
+"industrie": "Homefurnishing Retail"
+},
+{
+"ticker": "WMB",
+"cik": 107263,
+"nom": "WILLIAMS COMPANIES, INC.",
+"secteur": "Energy",
+"industrie": "Oil & Gas Storage & Transportation"
+},
+{
+"ticker": "WTW",
+"cik": 1140536,
+"nom": "WILLIS TOWERS WATSON PLC",
+"secteur": "Financials",
+"industrie": "Insurance Brokers"
+},
+{
+"ticker": "WDAY",
+"cik": 1327811,
+"nom": "Workday, Inc.",
+"secteur": "Information Technology",
+"industrie": "Application Software"
+},
+{
+"ticker": "WYNN",
+"cik": 1174922,
+"nom": "WYNN RESORTS LTD",
+"secteur": "Consumer Discretionary",
+"industrie": "Casinos & Gaming"
+},
+{
+"ticker": "XEL",
+"cik": 72903,
+"nom": "XCEL ENERGY INC",
+"secteur": "Utilities",
+"industrie": "Multi-Utilities"
+},
+{
+"ticker": "XYL",
+"cik": 1524472,
+"nom": "Xylem Inc.",
+"secteur": "Industrials",
+"industrie": "Industrial Machinery & Supplies & Components"
+},
+{
+"ticker": "YUM",
+"cik": 1041061,
+"nom": "YUM BRANDS INC",
+"secteur": "Consumer Discretionary",
+"industrie": "Restaurants"
+},
+{
+"ticker": "ZBRA",
+"cik": 877212,
+"nom": "ZEBRA TECHNOLOGIES CORP",
+"secteur": "Information Technology",
+"industrie": "Electronic Equipment & Instruments"
+},
+{
+"ticker": "ZBH",
+"cik": 1136869,
+"nom": "ZIMMER BIOMET HOLDINGS, INC.",
+"secteur": "Health Care",
+"industrie": "Health Care Equipment"
+},
+{
+"ticker": "ZTS",
+"cik": 1555280,
+"nom": "Zoetis Inc.",
+"secteur": "Health Care",
+"industrie": "Pharmaceuticals"
+}
+]

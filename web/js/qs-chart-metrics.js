@@ -23,10 +23,42 @@ export const BASE = {
   revenue: {
     nom: "Revenue", cat: "Income statement",
     unite: "money", graph: "bar",
+    //  Une banque ne declare pas de « Revenues » : son agregat est le
+    //  produit net bancaire, « RevenuesNetOfInterestExpense ». Faute de
+    //  ce tag, Goldman Sachs, Truist et Synchrony n'avaient AUCUN chiffre
+    //  d'affaires -- pas une valeur douteuse, rien du tout. Un producteur
+    //  petrolier comme Apache emploie de meme « OilAndGasRevenue ».
+    //
+    //  Ces tags viennent APRES les agregats generiques : ils ne servent
+    //  qu'aux societes qui ne publient pas les premiers.
     tags: [[G, "RevenueFromContractWithCustomerExcludingAssessedTax"],
            [G, "RevenueFromContractWithCustomerIncludingAssessedTax"],
            [G, "Revenues"], [G, "SalesRevenueNet"],
-           [I, "Revenue"], [I, "RevenueFromContractsWithCustomers"]] },
+           [G, "RevenuesNetOfInterestExpense"],
+           [G, "OilAndGasRevenue"],
+           [I, "Revenue"], [I, "RevenueFromContractsWithCustomers"]],
+    //  Les banques qui ne publient meme pas d'agregat le laissent
+    //  reconstituer : produit d'interet net + produits hors interets,
+    //  c'est la definition du produit net bancaire.
+    secours: {
+      libelle: "net interest income + non-interest income",
+      besoins: ["produit_interet_net", "produits_hors_interet"],
+      calc: (s) => {
+        const r = {};
+        for (const k of Object.keys(s.produit_interet_net)) {
+          if (k in s.produits_hors_interet) r[k] = s.produit_interet_net[k] + s.produits_hors_interet[k];
+        }
+        return r;
+      } } },
+  produit_interet_net: {
+    nom: "Net interest income", cat: "Income statement",
+    unite: "money", graph: "bar", menu: false,
+    tags: [[G, "InterestIncomeExpenseNet"],
+           [G, "InterestIncomeExpenseAfterProvisionForLoanLoss"]] },
+  produits_hors_interet: {
+    nom: "Non-interest income", cat: "Income statement",
+    unite: "money", graph: "bar", menu: false,
+    tags: [[G, "NoninterestIncome"]] },
   gross_profit: {
     nom: "Gross profit", cat: "Income statement",
     unite: "money", graph: "bar",

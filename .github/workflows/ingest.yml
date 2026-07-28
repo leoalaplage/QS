@@ -1,0 +1,63 @@
+# =====================================================================
+#  Ingestion nocturne du S&P 500
+#
+#  Le calcul des series est identique d'une visite a l'autre : les
+#  comptes d'une societe ne changent qu'a la publication d'un rapport.
+#  On le fait donc une fois par nuit, ici, et le site ne lit plus que le
+#  resultat.
+#
+#  Le script n'ecrit un fichier que si son contenu a change : la plupart
+#  des nuits, rien n'est modifie et aucun commit n'est cree. L'historique
+#  du depot montre ainsi exactement quelle societe a publie quoi, et
+#  quand.
+# =====================================================================
+name: Ingestion S&P 500
+
+on:
+  schedule:
+    # 06:20 UTC, apres la fenetre de depot de la SEC (qui ferme a 22:00 ET)
+    - cron: "20 6 * * *"
+  workflow_dispatch:
+    inputs:
+      tickers:
+        description: "Tickers a re-ingerer (vide = tout l'univers)"
+        required: false
+        default: ""
+
+concurrency:
+  group: ingestion
+  cancel-in-progress: false
+
+jobs:
+  ingerer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Lire EDGAR et recalculer les series
+        env:
+          # La SEC exige un agent nominatif portant un contact.
+          SEC_AGENT: ${{ secrets.SEC_AGENT || 'QS ingest leoalaplage@gmail.com' }}
+        run: node outils/ingerer.mjs ${{ github.event.inputs.tickers }}
+
+      - name: Publier ce qui a change
+        run: |
+          git config user.name "qs-ingest"
+          git config user.email "actions@github.com"
+          git add web/data/univers
+          if git diff --cached --quiet; then
+            echo "Aucun changement : aucune societe n'a publie depuis hier."
+            exit 0
+          fi
+          n=$(git diff --cached --name-only | grep -c '\.json$' || true)
+          git commit -m "Ingestion : $n fichier(s) mis a jour" \
+                     -m "Passe automatique du $(date -u +%Y-%m-%d)."
+          git push
