@@ -32,14 +32,38 @@
         <input type="text" id="recherche" placeholder="Name or ticker&hellip;" autocomplete="off">
         <div id="resultats-recherche" class="suggestions cache"></div>
       </div>
+      <div class="ligne-actions" style="margin-top:8px">
+        <input type="text" id="lot" placeholder="Or paste a list: AAPL, MSFT, GOOGL, V, MA&hellip;"
+               style="flex:1;min-width:300px" autocomplete="off">
+        <button type="button" id="btn-lot">Add all</button>
+      </div>
       <div id="selection" class="jetons"></div>
       <div id="selection-vide" class="aide">
         Try <span id="suggestions-rapides"></span>
       </div>
     </div>
 
+    <div class="bloc">
+      <div class="reglages">
+        <div>
+          <label for="periode">Observed as</label>
+          <select id="periode">
+            <option value="annuel" selected>Annual</option>
+            <option value="ttm">TTM (rolling 12 months)</option>
+            <option value="trimestre">Quarterly</option>
+          </select>
+        </div>
+        <div>
+          <label for="fenetre">Window</label>
+          <div class="presets" id="presets-fenetre"></div>
+        </div>
+      </div>
+      <p class="aide" id="note-periode"></p>
+    </div>
+
     <div class="ligne-actions barre-finale">
       <button type="button" class="primaire" id="btn-analyser">Analyse</button>
+      <button type="button" class="lien" id="btn-csv">Download CSV</button>
       <button type="button" class="lien" id="btn-reset">Clear</button>
       <span id="statut" class="chargement cache"><span class="rondelle"></span><span id="statut-texte"></span></span>
     </div>
@@ -79,6 +103,16 @@
       the market has valued consistently, a high CV one that has swung between
       enthusiasm and neglect. Sample standard deviation; undefined on a negative
       mean.
+    </p>
+    <p class="aide">
+      <strong>Annual, TTM or quarterly.</strong> Every figure stays an
+      <em>annual</em> rate whatever you pick: periods sit on a continuous year
+      axis, and the CAGR uses the real elapsed time between the two ends rather
+      than a count of points. <strong>Quarterly is the one to watch</strong>
+      &mdash; cash collection is seasonal, so a perfectly healthy business shows
+      a saw-tooth and a low R&sup2; that measures its calendar, not its
+      consistency. <strong>TTM</strong> smooths that out and is the honest choice
+      for a short window.
     </p>
   </details>
 </main>

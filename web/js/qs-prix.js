@@ -327,7 +327,44 @@ export async function serieValo(cleMetrique, ticker, mode, construire,
   // ses alertes n'ont rien a faire dans l'audit d'une metrique qui ne s'en
   // sert pas. Sans quoi « Share price » signalait des incoherences portant
   // en realite sur une serie d'actions.
-  const actionsBrutes = s.shares_diluted || construire("shares_diluted", true);
+  //  Les facteurs de split se lisent dans les SAUTS du nombre d'actions. Il
+  //  faut donc la serie la mieux fournie : un saut situe entre deux points
+  //  manquants est un saut invisible.
+  //
+  //  Alphabet en donne l'exemple. Sa moyenne diluee ne compte que quatre
+  //  exercices, tous posterieurs au fractionnement par vingt de juillet
+  //  2022 : aucun saut a voir, donc aucun retraitement. Les cours de Yahoo
+  //  etant deja ajustes du split et les nombres d'actions restant tels que
+  //  publies, la capitalisation d'avant 2022 sortait vingt fois trop
+  //  petite, et le rendement du FCF affichait 66 % pour 2014 au lieu de
+  //  2,5 %. Le nombre d'actions en circulation, lui, couvre douze
+  //  exercices et laisse le saut parfaitement lisible.
+  //  Un nombre d'actions ne s'evapore pas. Coca-Cola en publie de
+  //  pratiquement nuls sur cinq trimestres de 2017 et 2018 -- valeur
+  //  aberrante ou changement d'echelle dans le depot. La capitalisation
+  //  tombait alors a zero et le rendement du FCF affichait 1 140 334 %.
+  //
+  //  Le seuil est volontairement tres bas -- un millieme du maximum de la
+  //  serie -- pour ne jamais mordre sur un fractionnement, qui divise par
+  //  vingt au plus, ni sur les rachats les plus agressifs, qui reduisent le
+  //  nombre d'actions d'un facteur sept sur vingt ans. Mille fois moins,
+  //  ce n'est plus la meme grandeur.
+  const nettoyer = (serie) => {
+    const vals = Object.values(serie || {}).filter((v) => v > 0 && isFinite(v));
+    if (!vals.length) return serie;
+    const plancher = Math.max(...vals) / 1000;
+    const r = {};
+    for (const [k, v] of Object.entries(serie)) if (v >= plancher && isFinite(v)) r[k] = v;
+    return r;
+  };
+
+  if (s.shares_diluted) s.shares_diluted = nettoyer(s.shares_diluted);
+  if (s.actions_circulation) s.actions_circulation = nettoyer(s.actions_circulation);
+
+  const dilueBrut = nettoyer(s.shares_diluted || construire("shares_diluted", true));
+  const circBrut = nettoyer(s.actions_circulation || construire("actions_circulation", true));
+  const nb = (o) => Object.keys(o || {}).length;
+  const actionsBrutes = nb(circBrut) > nb(dilueBrut) ? circBrut : dilueBrut;
   const facteurs = facteursSplit(actionsBrutes);
   if (s.shares_diluted) s.shares_diluted = appliquer(s.shares_diluted, facteurs, "multiplier");
   if (s.actions_circulation) s.actions_circulation = appliquer(s.actions_circulation, facteurs, "multiplier");

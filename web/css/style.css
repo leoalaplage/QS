@@ -261,6 +261,16 @@ details.options > div { padding-top: 16px; }
 .tbl-fcf td.menu { text-align: left; color: var(--texte-faible); font-size: 12px; }
 .tbl-fcf tr.vide-ligne td { opacity: .45; }
 .tbl-fcf tr:hover td { outline: 1px solid rgba(37, 99, 235, .18); outline-offset: -1px; }
+.tbl-fcf.tri th { cursor: pointer; user-select: none; }
+.tbl-fcf.tri th:hover { color: var(--texte); }
+.detail-societe + .detail-societe { margin-top: 22px; }
+.detail-societe h3 { font-size: 13px; margin: 0 0 8px; letter-spacing: .2px; }
+.presets .preset-select {
+  width: auto;
+  padding: 4px 8px;
+  font-size: 12.5px;
+  margin-left: 4px;
+}
 
 /* -- deux colonnes : societes | metriques ----------------------------- */
 .duo {

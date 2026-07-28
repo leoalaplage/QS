@@ -73,7 +73,22 @@ async function appelWorker(chemin) {
 export async function chargerFacts(cik) {
   const cle = String(cik);
   if (cacheFacts.has(cle)) return cacheFacts.get(cle);
-  const promesse = appelWorker(`/facts/${String(cik).padStart(10, "0")}`);
+  const promesse = appelWorker(`/facts/${String(cik).padStart(10, "0")}`).then((facts) => {
+    //  Un dossier peut exister sans contenir un seul poste comptable. C'est
+    //  le cas des coquilles de reorganisation, dont le dossier ne porte que
+    //  la taxonomie des droits de depot. Sans ce controle, chaque metrique
+    //  revenait vide une par une et la page se contentait de n'afficher
+    //  rien, sans jamais dire que l'entite interrogee n'etait pas la bonne.
+    const taxo = Object.keys(facts.facts || {});
+    if (!taxo.includes("us-gaap") && !taxo.includes("ifrs-full")) {
+      throw new ErreurWorker(
+        `${facts.entityName || `CIK ${cik}`} files no financial statements under this number `
+        + `(only ${taxo.join(", ") || "nothing"}). It is most likely a holding shell, and the `
+        + "accounts sit with another entity."
+      );
+    }
+    return facts;
+  });
   cacheFacts.set(cle, promesse);
   try {
     return await promesse;
@@ -88,11 +103,37 @@ export async function chargerFacts(cik) {
 // ---------------------------------------------------------------------
 let tableTickers = null;
 
+/**
+ * Tickers que la SEC rattache a une entite qui ne depose pas les comptes.
+ *
+ * Le cas se produit apres une reorganisation en holding : la nouvelle
+ * societe recoit le ticker et un nouveau numero, mais continue de faire
+ * publier les etats financiers par l'ancienne. La table officielle de la
+ * SEC pointe alors sur la coquille.
+ *
+ * Exxon Mobil en est l'exemple : « XOM » y renvoie a ExxonMobil Holdings
+ * Corp (CIK 2115436), dont le dossier ne contient que la taxonomie des
+ * droits de depot -- aucun poste comptable. Les dix-neuf exercices
+ * cherches sont chez Exxon Mobil Corp, CIK 34088, qui n'apparait plus
+ * dans la table sous aucun ticker.
+ *
+ * La liste est volontairement courte et nominative : la plupart des
+ * numeros recents designent de vraies societes nouvelles -- Cerebras,
+ * Smurfit Westrock, Venture Global -- qui deposent normalement. Aucune
+ * regle automatique ne les distinguerait sans se tromper.
+ */
+const CIK_DEPOSANT = {
+  XOM: [34088, "EXXON MOBIL CORP"],
+};
+
 export async function chargerTickers() {
   if (tableTickers) return tableTickers;
   const r = await fetch(new URL("../data/tickers.json", import.meta.url));
   if (!r.ok) throw new Error("Company table not found (web/data/tickers.json).");
   tableTickers = await r.json();
+  for (const [tk, remplacement] of Object.entries(CIK_DEPOSANT)) {
+    if (tableTickers[tk]) tableTickers[tk] = remplacement;
+  }
   return tableTickers;
 }
 

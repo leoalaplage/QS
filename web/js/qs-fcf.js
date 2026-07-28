@@ -30,39 +30,55 @@
 //  douteux : elles renvoient null, avec la raison.
 // =====================================================================
 
-/** Fenetres proposees, en exercices. */
+
+import { decoderCle } from "./qs-chart-edgar.js";
+
+/** Fenetres proposees, en annees. */
 export const FENETRES = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
+/** Nombre de points par an selon le mode d'observation. */
+export const PAR_AN = { annuel: 1, trimestre: 4, ttm: 4 };
+
 /**
- * Les `n` derniers exercices CONSECUTIFS d'une serie {annee: valeur}.
+ * Les points d'une serie couvrant les `nbAnnees` dernieres annees.
  *
- * La continuite est exigee : un trou d'un exercice au milieu fausserait
- * autant le taux de croissance que la regression, sans que rien ne le
- * signale a l'ecran.
+ * Chaque cle est ramenee a une ANNEE DECIMALE, positionnee a la fin de sa
+ * periode -- c'est deja la convention du reste du site. Un exercice 2025
+ * vaut 2026,0 et un trimestre 2025Q3 vaut 2025,75. Tout le calcul se fait
+ * ensuite sur cet axe continu, ce qui rend le mode d'observation
+ * indifferent : un CAGR reste un taux ANNUEL, qu'il soit tire de quinze
+ * points annuels ou de soixante points trimestriels.
+ *
+ * La continuite est exigee : un trou fausserait autant le taux de
+ * croissance que la regression, sans que rien ne le signale a l'ecran.
  */
-export function derniersExercices(serie, n) {
-  const annees = Object.keys(serie)
-    .map(Number).filter((a) => Number.isFinite(a))
-    .sort((a, b) => a - b);
-  if (annees.length < n) return null;
-  const retenues = annees.slice(-n);
-  for (let i = 1; i < retenues.length; i++) {
-    if (retenues[i] !== retenues[i - 1] + 1) return null;   // trou : on refuse
+export function derniersPoints(serie, nbAnnees, parAn = 1) {
+  const pts = Object.keys(serie)
+    .map((k) => ({ cle: k, x: decoderCle(k).x, val: serie[k] }))
+    .filter((p) => Number.isFinite(p.x) && p.val != null && isFinite(p.val))
+    .sort((a, b) => a.x - b.x);
+
+  const attendus = Math.round(nbAnnees * parAn);
+  if (pts.length < attendus) return null;
+  const retenus = pts.slice(-attendus);
+
+  const pas = 1 / parAn;
+  for (let i = 1; i < retenus.length; i++) {
+    if (Math.abs((retenus[i].x - retenus[i - 1].x) - pas) > pas * 0.35) return null;
   }
-  const points = retenues.map((a) => ({ annee: a, val: serie[a] }));
-  return points.some((p) => p.val == null || !isFinite(p.val)) ? null : points;
+  return retenus;
 }
 
 /**
- * Regression des moindres carres de ln(valeur) sur l'annee.
- * @returns {{croissance, r2, n}|null} croissance = taux annuel implicite
+ * Regression des moindres carres de ln(valeur) sur l'annee decimale.
+ * @returns {{croissance, r2, n}|null} croissance = taux ANNUEL implicite
  */
 export function regressionLog(points) {
   if (!points || points.length < 3) return null;
   if (points.some((p) => p.val <= 0)) return null;          // pas de logarithme
 
   const n = points.length;
-  const t = points.map((p) => p.annee);
+  const t = points.map((p) => p.x);
   const y = points.map((p) => Math.log(p.val));
   const tBar = t.reduce((a, b) => a + b, 0) / n;
   const yBar = y.reduce((a, b) => a + b, 0) / n;
@@ -73,7 +89,7 @@ export function regressionLog(points) {
   const pente = sty / stt;
   const ordonnee = yBar - pente * tBar;
 
-  //  R² = 1 − somme des carres residuels / somme des carres totale
+  //  R² = 1 - somme des carres residuels / somme des carres totale
   let sr = 0, st = 0;
   for (let i = 0; i < n; i++) {
     sr += (y[i] - (ordonnee + pente * t[i])) ** 2;
@@ -86,23 +102,28 @@ export function regressionLog(points) {
 }
 
 /**
- * Taux de croissance annuel compose, du premier au dernier exercice.
+ * Taux de croissance annuel compose, du premier au dernier point.
  *
- * Refuse si l'une des deux bornes n'est pas strictement positive : passer
- * de -50 a +100 n'est pas une croissance de 241 % par an, c'est un
+ * L'exposant est la duree REELLE en annees separant les deux bornes, et non
+ * un nombre de points : c'est ce qui permet a un CAGR trimestriel de rester
+ * comparable a un CAGR annuel.
+ *
+ * Refuse si l'une des deux bornes n'est pas strictement positive : passer de
+ * -50 a +100 n'est pas une croissance de 241 % par an, c'est un
  * retournement, et aucun taux ne le decrit.
  */
 export function cagr(points) {
   if (!points || points.length < 2) return null;
-  const debut = points[0].val, fin = points[points.length - 1].val;
-  if (debut <= 0 || fin <= 0) return null;
-  return (fin / debut) ** (1 / (points.length - 1)) - 1;
+  const a = points[0], b = points[points.length - 1];
+  const duree = b.x - a.x;
+  if (duree <= 0 || a.val <= 0 || b.val <= 0) return null;
+  return (b.val / a.val) ** (1 / duree) - 1;
 }
 
 /**
  * Coefficient de variation : ecart-type divise par la moyenne.
- * Ecart-type d'ECHANTILLON (division par n-1) : les exercices observes
- * sont un echantillon de l'histoire de la societe, pas sa population.
+ * Ecart-type d'ECHANTILLON (division par n-1) : les periodes observees sont
+ * un echantillon de l'histoire de la societe, pas sa population.
  */
 export function coefficientVariation(valeurs) {
   const v = valeurs.filter((x) => x != null && isFinite(x));
@@ -114,33 +135,43 @@ export function coefficientVariation(valeurs) {
 }
 
 /**
- * Le tableau complet d'une societe : une ligne par fenetre.
+ * Une fenetre, pour une societe.
  *
- * @param {Object} fcf   {annee: FCF}
- * @param {Object} rende {annee: rendement du FCF en %}
- * @returns {Array<{annees, cagr, r2, cv, moyenneRendement, n, refus}>}
+ * @param {Object} fcf   {cle: FCF}
+ * @param {Object} rende {cle: rendement du FCF en %}
  */
-export function analyser(fcf, rende, fenetres = FENETRES) {
-  return fenetres.map((n) => {
-    const pts = derniersExercices(fcf, n);
-    if (!pts) {
-      return { annees: n, cagr: null, r2: null, cv: null, refus: "not enough consecutive years" };
-    }
-    const reg = regressionLog(pts);
-    const g = cagr(pts);
-    const ptsRende = derniersExercices(rende, n);
-    const stat = ptsRende ? coefficientVariation(ptsRende.map((p) => p.val)) : null;
+export function fenetre(fcf, rende, nbAnnees, parAn = 1) {
+  const pts = derniersPoints(fcf, nbAnnees, parAn);
+  if (!pts) {
+    //  Dire POURQUOI la ligne est vide. Nvidia n'a taggue aucune depense
+    //  d'investissement entre 2013 et 2021 : son FCF ne peut pas former dix
+    //  exercices consecutifs, et une ligne de tirets sans explication
+    //  passerait pour une panne du site.
+    return { annees: nbAnnees, cagr: null, r2: null, cv: null,
+      refus: `needs ${Math.round(nbAnnees * parAn)} consecutive periods of free cash flow; `
+        + "the filings do not provide them without a gap" };
+  }
 
-    return {
-      annees: n,
-      periode: `${pts[0].annee}–${pts[pts.length - 1].annee}`,
-      cagr: g,
-      r2: reg ? reg.r2 : null,
-      croissanceAjustee: reg ? reg.croissance : null,
-      cv: stat ? stat.cv : null,
-      moyenneRendement: stat ? stat.moyenne : null,
-      negatif: pts.some((p) => p.val <= 0),
-      valeurs: pts,
-    };
-  });
+  const reg = regressionLog(pts);
+  const ptsRende = derniersPoints(rende, nbAnnees, parAn);
+  const stat = ptsRende ? coefficientVariation(ptsRende.map((p) => p.val)) : null;
+
+  return {
+    annees: nbAnnees,
+    periode: `${pts[0].cle} → ${pts[pts.length - 1].cle}`,
+    n: pts.length,
+    cagr: cagr(pts),
+    r2: reg ? reg.r2 : null,
+    croissanceAjustee: reg ? reg.croissance : null,
+    cv: stat ? stat.cv : null,
+    moyenneRendement: stat ? stat.moyenne : null,
+    negatif: pts.some((p) => p.val <= 0),
+    dernier: pts[pts.length - 1],
+    valeurs: pts,
+  };
+}
+
+/** Le tableau complet d'une societe : une ligne par fenetre. */
+export function analyser(fcf, rende, fenetres = FENETRES, parAn = 1) {
+  return fenetres.map((n) => fenetre(fcf, rende, n, parAn));
 }
