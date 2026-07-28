@@ -310,8 +310,31 @@ export const BASE = {
     ttmPonctuel: true,
     tags: [[G, "WeightedAverageNumberOfDilutedSharesOutstanding"],
            [G, "WeightedAverageNumberOfSharesOutstandingBasic"],
+           [G, "WeightedAverageNumberOfShareOutstandingBasicAndDiluted"],
            [I, "AdjustedWeightedAverageNumberOfOrdinarySharesOutstandingDiluted"],
-           [I, "WeightedAverageNumberOfOrdinarySharesOutstandingDiluted"]] },
+           [I, "WeightedAverageNumberOfOrdinarySharesOutstandingDiluted"]],
+    //  Chez un emetteur a plusieurs classes d'actions, le nombre
+    //  consolide n'existe PAS dans companyfacts : la SEC n'y garde que les
+    //  faits sans dimension, et ces societes declinent leurs actions par
+    //  classe. Visa n'a ainsi aucun nombre d'actions utilisable -- son
+    //  seul tag s'arrete en 2010 -- ce qui donnait une capitalisation de
+    //  174 milliards pour une societe qui en vaut 700.
+    //
+    //  Le resultat net et le benefice par action dilue, eux, sont publies
+    //  sans dimension. Leur quotient EST le nombre d'actions dilue, par
+    //  definition meme du BPA. Ce n'est pas une estimation : c'est la
+    //  formule inverse.
+    secours: {
+      libelle: "net income / diluted EPS",
+      besoins: ["net_income", "eps_publie"],
+      calc: (s) => {
+        const r = {};
+        for (const k of Object.keys(s.net_income)) {
+          const e = s.eps_publie[k];
+          if (e != null && Math.abs(e) > 0.01) r[k] = s.net_income[k] / e;
+        }
+        return r;
+      } } },
 };
 
 // ---------------------------------------------------------------------

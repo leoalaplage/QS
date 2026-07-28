@@ -279,9 +279,24 @@ export function dessinerPortfolio(lignes, meta = {}, { echelle = 8 } = {}) {
     titreBloc(doc, G, y2, colG, "Geography", `${pays.length} ${pays.length === 1 ? "country" : "countries"}`);
     const basG = barres(doc, G, y2 + 8, colG, 34, pays.slice(0, 5), PALETTE[2]);
 
-    titreBloc(doc, G + colG + 6, y2, colD, "Market cap");
+    const inconnues = lignes.filter((l) => l.capitalisation == null);
+    titreBloc(doc, G + colG + 6, y2, colD, "Market cap",
+      inconnues.length ? `${inconnues.length} not derivable` : "");
     const basD = barres(doc, G + colG + 6, y2 + 8, colD, 34, parCapitalisation(lignes), PALETTE[4]);
-    doc.y = Math.max(basG, basD) + 6;
+    //  Dire POURQUOI une part du livre est sans capitalisation. « Unknown »
+    //  seul ferait croire a une defaillance du rapport, alors que c'est une
+    //  limite de la source : la SEC ne conserve pas les faits ventiles par
+    //  classe d'actions, et un certificat etranger ne se rapproche pas d'un
+    //  nombre d'actions sans connaitre son ratio.
+    let bas = Math.max(basG, basD);
+    if (inconnues.length) {
+      doc.police(6.2).texteCouleur(GRIS);
+      const raison = inconnues.map((l) => l.ticker).join(", ");
+      doc.texteDans(G + colG + 6, bas + 1, colD, 4,
+        `${raison}: no consolidated share count in the filings`, "L", 0);
+      bas += 5;
+    }
+    doc.y = bas + 6;
 
     // -- financiers ponderes ------------------------------------------
     const y3 = doc.y;

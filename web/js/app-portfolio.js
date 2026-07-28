@@ -127,6 +127,37 @@ const derniere = (serie) => {
   return k.length ? serie[k[k.length - 1]] : null;
 };
 
+/** Derniere periode d'une serie, sous forme d'annee. */
+const derniereAnnee = (serie) => {
+  const k = Object.keys(serie || {}).sort();
+  return k.length ? Number(String(k[k.length - 1]).slice(0, 4)) : null;
+};
+
+/**
+ * Nombre d'actions retenu pour la capitalisation.
+ *
+ * Deux series candidates, et le critere est la FRAICHEUR avant tout.
+ * Mastercard illustre le piege : son nombre d'actions en circulation
+ * s'arrete en 2010, a 110 millions -- avant un fractionnement par dix --
+ * tandis que sa moyenne diluee court jusqu'en 2026 a 893 millions.
+ * Preferer la circulation par principe donnait une capitalisation de 62
+ * milliards pour une societe qui en vaut 530.
+ *
+ * Une valeur anterieure de plus de deux ans au dernier exercice publie
+ * est donc REFUSEE, quelle que soit sa provenance : mieux vaut pas de
+ * capitalisation qu'une capitalisation d'il y a quinze ans.
+ */
+function actionsRecentes(circ, dil, anneeReference) {
+  const candidats = [
+    { v: derniere(circ), an: derniereAnnee(circ), source: "outstanding" },
+    { v: derniere(dil), an: derniereAnnee(dil), source: "diluted" },
+  ].filter((c) => c.v != null && isFinite(c.v) && c.v > 0 && c.an != null
+    && (anneeReference == null || anneeReference - c.an <= 2));
+  if (!candidats.length) return null;
+  candidats.sort((a, b) => b.an - a.an);
+  return candidats[0];
+}
+
 /** CAGR sur les 5 derniers exercices d'une serie annuelle. */
 function croissance5(serie) {
   const k = Object.keys(serie || {}).map(Number).filter(Number.isFinite).sort((a, b) => a - b);
@@ -168,7 +199,10 @@ async function enrichir(p, cible) {
     l.dateCours = dernier ? String(dernier.t).slice(0, 10) : null;
   } catch { l.prix = null; }
 
-  const actions = derniere(lire("actions_circulation")) ?? derniere(lire("shares_diluted"));
+  const anneeRef = derniereAnnee(revenu);
+  const choix = actionsRecentes(lire("actions_circulation"), lire("shares_diluted"), anneeRef);
+  const actions = choix ? choix.v : null;
+  l.sourceActions = choix ? `${choix.source} ${choix.an}` : "none recent enough";
   const memeDevise = !l.deviseCours || l.deviseCours === deviseComptes;
   if (l.prix != null && actions && memeDevise) {
     l.capitalisation = l.prix * actions;
