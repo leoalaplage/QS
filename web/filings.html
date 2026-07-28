@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QS Filings - figures pulled straight from the reports</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <div class="marque">QS <span>Filings</span></div>
+  <nav>
+    <a href="index.html">Table</a>
+    <a href="chart.html">Chart</a>
+    <a href="fcf.html">FCF</a>
+    <a href="portfolio.html">Portfolio</a>
+    <a href="filings.html" class="actif">Filings</a>
+  </nav>
+</header>
+
+<main>
+  <h1>Figures pulled straight from the reports</h1>
+  <p class="intro">
+    Payment volumes, processed transactions, revenue by nature &mdash; none of it is
+    tagged in XBRL. It lives in tables inside the 10-Q and the earnings release.
+    QS reads those tables, quarter by quarter, and charts them.
+  </p>
+
+  <section id="sorties"></section>
+
+  <section class="carte panneau">
+    <div class="bloc">
+      <div class="reglages">
+        <div>
+          <label for="societe">Company</label>
+          <select id="societe"></select>
+        </div>
+        <div>
+          <label for="profondeur">History</label>
+          <select id="profondeur">
+            <option value="4">1 year</option>
+            <option value="8">2 years</option>
+            <option value="12" selected>3 years</option>
+            <option value="20">5 years</option>
+            <option value="32">8 years</option>
+          </select>
+        </div>
+      </div>
+      <p class="aide" id="note-societe"></p>
+    </div>
+
+    <div class="bloc">
+      <label>Series to chart</label>
+      <div id="choix-series" class="jetons"></div>
+    </div>
+
+    <div class="ligne-actions barre-finale">
+      <button type="button" class="primaire" id="btn-extraire">Read the filings</button>
+      <button type="button" class="lien" id="btn-csv">Download CSV</button>
+      <span id="statut" class="chargement cache"><span class="rondelle"></span><span id="statut-texte"></span></span>
+    </div>
+
+    <div id="messages"></div>
+  </section>
+
+  <details class="carte repli" id="bloc-audit">
+    <summary>Where each number came from</summary>
+    <p class="aide">
+      Every point keeps the filing it was read from and the raw table row, so any
+      figure on the chart can be traced back to its line in the report.
+    </p>
+    <div id="audit"></div>
+  </details>
+
+  <details class="carte repli">
+    <summary>How the extraction works, and where it stops</summary>
+    <p class="aide">
+      Filings are read as <strong>tables</strong>, not as text. Flattened to text, a
+      filing table falls apart: labels detach from their figures and
+      &ldquo;Consumer debit&rdquo; ends up on one line with its six amounts on the
+      next. Read as rows and cells, the first cell carries the label and the rest
+      carry the values in column order.
+    </p>
+    <p class="aide">
+      <strong>Positions are derived, never hard-coded.</strong> Visa&rsquo;s 10-Q used
+      to put a &ldquo;% Change&rdquo; column after each region, so the worldwide total
+      sat in the 7th figure; today it sits in the 5th. A fixed rank would silently
+      return a U.S. figure where a global one is expected. The rule says
+      &ldquo;third of three regions&rdquo; instead, and holds on both sides of the change.
+    </p>
+    <p class="aide">
+      <strong>Each table dates itself.</strong> Visa reports volumes one quarter in
+      arrears &mdash; the report for the quarter ended March carries volumes for the
+      three months ended December. Periods are read from the table header, so the
+      shift is handled. A table that does not state a period is skipped rather than
+      dated from the filing.
+    </p>
+    <p class="aide">
+      <strong>Fiscal fourth quarters are missing</strong> from the 10-Q series: that
+      quarter is covered by the 10-K, whose tables are annual. The earnings-release
+      series have no such gap.
+    </p>
+  </details>
+</main>
+
+<footer>
+  Data source: SEC EDGAR &mdash; 10-Q reports and 8-K earnings releases.
+</footer>
+
+<script type="module" src="js/app-filings.js"></script>
+</body>
+</html>

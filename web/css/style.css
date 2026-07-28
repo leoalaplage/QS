@@ -272,6 +272,34 @@ details.options > div { padding-top: 16px; }
   margin-left: 4px;
 }
 
+/* -- page Filings : choix des series ---------------------------------- */
+.groupe-series + .groupe-series { margin-top: 14px; }
+.groupe-titre {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--texte-faible);
+  margin-bottom: 2px;
+}
+.jeton-choix {
+  border: 1px solid var(--bord);
+  background: #fff;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.jeton-choix:hover { background: #f1f5f9; }
+.jeton-choix.actif {
+  background: var(--bleu);
+  border-color: var(--bleu);
+  color: #fff;
+  font-weight: 600;
+}
+.jeton-choix .nm { opacity: .65; font-size: 11.5px; }
+.jeton-choix.actif .nm { color: #fff; }
+
 /* -- deux colonnes : societes | metriques ----------------------------- */
 .duo {
   display: grid;
