@@ -41,8 +41,8 @@ window.addEventListener("unhandledrejection", (e) => {
   signaler("Unhandled error", (e.reason && e.reason.message) || String(e.reason));
 });
 
-const reglages = lireEtat("fcf", { periode: "annuel", fenetre: 10 });
-let societes = [];
+const reglages = lireEtat("fcf", { periode: "annuel", fenetre: 10, societes: [] });
+let societes = Array.isArray(reglages.societes) ? reglages.societes : [];
 let dernier = null;          // { lignes, periode, fenetre } pour le tri et le CSV
 let triCourant = { colonne: "cagr", desc: true };
 
@@ -66,6 +66,7 @@ function dessinerSelection() {
     vider1.addEventListener("click", () => { societes = []; dessinerSelection(); });
     zone.appendChild(vider1);
   }
+  if (typeof enregistrerReglages === "function") enregistrerReglages();
 }
 
 function ajouterSociete(s, silencieux = false) {
@@ -93,7 +94,12 @@ async function ajouterLot() {
   const { trouves, inconnus } = await resoudreTickers(saisie.replace(/\s+/g, ","));
   let ajoutes = 0;
   for (const s of trouves) if (ajouterSociete(s, true)) ajoutes++;
-  dessinerSelection();
+  //  Amorcage : la selection precedente revient, et l'analyse se relance
+//  toute seule. On retrouve son tableau la ou on l'avait laisse.
+dessinerSelection();
+if (societes.length) {
+  analyserTout().catch(() => { /* un etat sauvegarde perime ne bloque pas la page */ });
+}
   $("#lot").value = "";
   vider(messages);
   if (inconnus.length) {
@@ -268,7 +274,7 @@ dessinerPresets();
 majNote();
 
 function enregistrerReglages() {
-  ecrireEtat("fcf", { periode: selPeriode.value, fenetre: fenetreChoisie });
+  ecrireEtat("fcf", { periode: selPeriode.value, fenetre: fenetreChoisie, societes });
 }
 
 // ---------------------------------------------------------------------
@@ -635,4 +641,10 @@ $("#btn-reset").addEventListener("click", () => {
   vider(messages);
 });
 
+//  Amorcage : la selection precedente revient, et l'analyse se relance
+//  toute seule. On retrouve son tableau la ou on l'avait laisse, au lieu
+//  d'un panneau vide a re-remplir.
 dessinerSelection();
+if (societes.length) {
+  analyserTout().catch(() => { /* un etat sauvegarde perime ne bloque pas la page */ });
+}

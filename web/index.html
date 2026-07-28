@@ -21,13 +21,15 @@
 <main>
   <h1>Quality scoring table as a PNG</h1>
   <p class="intro">
-    Paste your export (fiscal.ai, Excel, Google Sheets&hellip;) or drop a CSV file:
-    the colour-coded ranking is computed in your browser and rendered as an image,
-    ready to copy and paste. No data ever leaves your machine.
+    Paste your export (fiscal.ai, Excel, Google Sheets&hellip;) or drop a CSV file.
+    The ranking is computed in your browser and rendered as an image, ready to copy.
+    Nothing leaves your machine.
   </p>
 
-  <section class="carte">
-    <h2><span class="etape">1</span>Your data</h2>
+  <section id="sorties"></section>
+
+  <section class="carte" id="bloc-donnees">
+    <h2>Your data</h2>
     <textarea id="saisie" spellcheck="false"
       placeholder="Paste your table here, keeping the first row of column titles.&#10;&#10;Ticker,Market Cap,Return on Invested Capital,ROIC 5Yr Avg,Operating Margin,...&#10;AAPL,3521.5,57.2,52.4,31.8,...&#10;MSFT,3180.2,29.1,28.0,44.6,...&#10;&#10;Comma, semicolon or tab all work — a copy-paste straight out of Excel is already tab-separated."></textarea>
 
@@ -46,7 +48,7 @@
   </section>
 
   <section class="carte">
-    <h2><span class="etape">2</span>Settings</h2>
+    <h2>Settings</h2>
     <div class="grille">
       <div>
         <label for="preset">Pillar weights</label>
@@ -115,7 +117,6 @@
     <div id="messages"></div>
   </section>
 
-  <section id="sorties"></section>
 </main>
 
 <footer>

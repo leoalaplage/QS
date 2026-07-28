@@ -156,13 +156,19 @@ function options() {
 // ---------------------------------------------------------------------
 // Generation
 // ---------------------------------------------------------------------
-$("#btn-generer").addEventListener("click", async () => {
+/**
+ * @param {boolean} auto  lancement automatique a l'ouverture de la page :
+ *   on ne reproche alors rien a l'utilisateur s'il n'y a pas de donnees,
+ *   et on ne fait pas defiler la page vers un resultat qu'il n'a pas
+ *   demande.
+ */
+async function generer({ auto = false } = {}) {
   vider(messages);
   vider(sorties);
 
   const texte = saisie.value.trim();
   if (!texte) {
-    message(messages, "erreur", "Paste your data first (or load a CSV file).");
+    if (!auto) message(messages, "erreur", "Paste your data first (or load a CSV file).");
     return;
   }
 
@@ -246,7 +252,14 @@ $("#btn-generer").addEventListener("click", async () => {
     }));
   }
 
-  sorties.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (!auto) sorties.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+$("#btn-generer").addEventListener("click", () => {
+  generer().catch((e) => {
+    act.cacher();
+    message(messages, "erreur", `Unexpected error: ${e.message}`);
+  });
 });
 
 // Raccourci : Cmd/Ctrl + Entree depuis la zone de texte
@@ -260,6 +273,12 @@ saisie.addEventListener("keydown", (e) => {
 // ---------------------------------------------------------------------
 restaurerEtat();
 majEtat();
+
+//  Le tableau s'affiche des l'ouverture quand des donnees ont deja ete
+//  collees. On arrive sur le RESULTAT, pas sur un formulaire vide a
+//  remplir de nouveau : les reglages restent en dessous, a portee de
+//  main, mais ne s'imposent plus avant d'avoir rien vu.
+generer({ auto: true }).catch(() => { /* un etat sauvegarde illisible ne bloque pas la page */ });
 for (const id of [...CHAMPS, ...PILIERS_MIN, ...CASES]) {
   const champ = $(`#${id}`);
   if (champ) champ.addEventListener("change", enregistrer);

@@ -22,25 +22,23 @@ const messages = $("#messages");
 const sorties = $("#sorties");
 const act = statut($("#statut"), $("#statut-texte"));
 
-//  La page repart PROPRE a chaque chargement.
-//
-//  Les societes et les metriques etaient restaurees d'une visite a l'autre.
-//  A l'usage, on retrouvait une selection accumulee au fil du temps, dont on
-//  ne savait plus ce qu'elle contenait ni pourquoi, et il fallait la vider a
-//  la main avant de pouvoir regarder autre chose. Seuls les REGLAGES
-//  d'affichage -- periode, profondeur, transformation -- survivent : ce sont
-//  des preferences, pas des donnees.
+//  La selection est restauree, et le graphe se retrace tout seul : on
+//  revient sur la page et le travail en cours est la, sans avoir a le
+//  reconstituer. Le bouton « Clear » vide tout d'un geste -- c'etait la
+//  vraie reponse au fouillis qui s'accumulait, plutot que d'effacer la
+//  selection a chaque visite.
 const DEFAUTS = {
-  periode: "annuel", annees: 15,
+  societes: [], metriques: [], periode: "annuel", annees: 15,
   transformation: "aucune", etiquettes: "auto", pasCours: "1mo",
 };
 const sauve = lireEtat("chart", DEFAUTS);
 
-const societes = [];
-const metriques = [];
+const societes = Array.isArray(sauve.societes) ? sauve.societes : [];
+const metriques = Array.isArray(sauve.metriques) ? sauve.metriques : [];
 
 function enregistrer() {
   ecrireEtat("chart", {
+    societes, metriques,
     periode: $("#periode").value,
     annees: Number($("#annees").value) || 15,
     transformation: $("#transformation").value,
@@ -915,8 +913,9 @@ if (!metriques.length) {
     overlays: { moyenne: false, mediane: false, extremes: false, tendance: false },
   });
 }
-dessinerSelections();
-if (societes.length) rafraichir();
-
-
+//  Amorcage : on reconstruit le catalogue, on redessine la selection
+//  restauree, et on retrace le graphe s'il y a de quoi. Arriver sur la page
+//  doit montrer le resultat, pas un panneau vide.
 construireCatalogue();
+dessinerSelections();
+if (societes.length && metriques.length) rafraichir();
