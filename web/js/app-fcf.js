@@ -24,6 +24,23 @@ const act = statut($("#statut"), $("#statut-texte"));
 
 const MAX_SOCIETES = 40;
 
+//  Filet de securite : sans lui, une erreur imprevue ne laisse aucune
+//  trace a l'ecran -- les boutons semblent morts et rien n'explique
+//  pourquoi. Elle s'affiche desormais la ou l'utilisateur regarde, avec
+//  le fichier et la ligne, de quoi la rapporter telle quelle.
+function signaler(prefixe, detail) {
+  try {
+    vider(messages);
+    message(messages, "erreur", `${prefixe}: ${detail}`);
+  } catch { /* si meme l'affichage echoue, il ne reste que la console */ }
+}
+window.addEventListener("error", (e) => {
+  signaler("Script error", `${e.message} (${(e.filename || "").split("/").pop()}:${e.lineno})`);
+});
+window.addEventListener("unhandledrejection", (e) => {
+  signaler("Unhandled error", (e.reason && e.reason.message) || String(e.reason));
+});
+
 const reglages = lireEtat("fcf", { periode: "annuel", fenetre: 10 });
 let societes = [];
 let dernier = null;          // { lignes, periode, fenetre } pour le tri et le CSV
@@ -68,7 +85,11 @@ function ajouterSociete(s, silencieux = false) {
 // ---------------------------------------------------------------------
 async function ajouterLot() {
   const saisie = $("#lot").value.trim();
-  if (!saisie) return;
+  vider(messages);
+  if (!saisie) {
+    message(messages, "info", "Type or paste tickers in the field first — for example: AAPL, MSFT, V.");
+    return;
+  }
   const { trouves, inconnus } = await resoudreTickers(saisie.replace(/\s+/g, ","));
   let ajoutes = 0;
   for (const s of trouves) if (ajouterSociete(s, true)) ajoutes++;
@@ -80,7 +101,11 @@ async function ajouterLot() {
       `${ajoutes} added. Not found in SEC filings: ${inconnus.join(", ")} — `
       + "a company not listed in the United States files nothing here.");
   } else if (ajoutes) {
-    message(messages, "ok", `${ajoutes} companies added.`);
+    message(messages, "ok", `${ajoutes} compan${ajoutes === 1 ? "y" : "ies"} added.`);
+  } else {
+    //  Zero ajout n'est pas forcement une panne : ils peuvent deja tous
+    //  etre la. Le dire, plutot que de laisser le bouton passer pour mort.
+    message(messages, "info", "Nothing new — those companies are already selected.");
   }
 }
 
@@ -118,7 +143,9 @@ $("#btn-watchlist").addEventListener("click", async () => {
     vider(messages);
     const hors = (w.horsPortee || []).map((x) => `${x.ticker} — ${x.raison}`);
     message(messages, ajoutes ? "ok" : "info",
-      `${ajoutes} of your watchlist added.`
+      ajoutes ? `${ajoutes} of your watchlist added.`
+        : "Your watchlist is already fully selected."
+
       + (hors.length ? ` Out of reach, and always will be: ${hors.join(", ")} — no US listing means no SEC filings.` : ""));
   } catch (e) {
     message(messages, "erreur", `Could not load the watchlist: ${e.message}`);
