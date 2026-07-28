@@ -19,20 +19,36 @@ async function relais(chemin, json = true) {
  * Les `nb` derniers depots d'un type donne.
  * Le 8-K n'est retenu que s'il porte l'item 2.02 -- les resultats.
  */
-export async function derniersDepots(cik, type, nb) {
-  const d = await relais(`/submissions/${cik}`);
-  const r = d.filings?.recent || {};
-  const out = [];
-  for (let i = 0; i < (r.form || []).length && out.length < nb; i++) {
-    if (r.form[i] !== type) continue;
-    if (type === "8-K" && !String(r.items?.[i] || "").includes("2.02")) continue;
+function moissonner(bloc, type, out, nb) {
+  for (let i = 0; i < (bloc.form || []).length && out.length < nb; i++) {
+    if (bloc.form[i] !== type) continue;
+    if (type === "8-K" && !String(bloc.items?.[i] || "").includes("2.02")) continue;
     out.push({
       forme: type,
-      accession: r.accessionNumber[i].replace(/-/g, ""),
-      date: r.filingDate[i],
-      periodeDepot: r.reportDate?.[i] || null,
-      principal: r.primaryDocument[i],
+      accession: bloc.accessionNumber[i].replace(/-/g, ""),
+      date: bloc.filingDate[i],
+      periodeDepot: bloc.reportDate?.[i] || null,
+      principal: bloc.primaryDocument[i],
     });
+  }
+}
+
+export async function derniersDepots(cik, type, nb) {
+  const d = await relais(`/submissions/${cik}`);
+  const out = [];
+  moissonner(d.filings?.recent || {}, type, out, nb);
+
+  //  `filings.recent` s'arrete a mille depots -- une bonne dizaine
+  //  d'annees chez une societe active, pas davantage. Au-dela, la SEC
+  //  range l'historique dans des fichiers d'archive, qu'on n'ouvre que
+  //  si la profondeur demandee l'exige.
+  const archives = [...(d.filings?.files || [])]
+    .sort((a, b) => String(b.filingTo).localeCompare(String(a.filingTo)));
+  for (const fichier of archives) {
+    if (out.length >= nb) break;
+    try {
+      moissonner(await relais(`/submissions-archive/${fichier.name}`), type, out, nb);
+    } catch { /* une archive illisible n'arrete pas le reste */ }
   }
   return out;
 }
@@ -169,7 +185,10 @@ export async function extraire(societe, { trimestres = 12, surAvancement = () =>
   for (const s of Object.values(series)) {
     const vus = new Map();
     for (const p of s.points) if (!vus.has(p.periode)) vus.set(p.periode, p);
-    s.points = [...vus.values()].sort((a, b) => a.periode.localeCompare(b.periode));
+    const tout = [...vus.values()].sort((a, b) => a.periode.localeCompare(b.periode));
+    s.points = tout.filter((p) => !p.periode.startsWith("A"));
+    s.annuels = tout.filter((p) => p.periode.startsWith("A"));
+    completerParDifference(s);
   }
 
   return {
@@ -179,3 +198,120 @@ export async function extraire(societe, { trimestres = 12, surAvancement = () =>
 }
 
 export { decoderEntites };
+
+
+/**
+ * Reconstitue le trimestre que la societe ne publie jamais seul.
+ *
+ * Visa ne depose que trois rapports trimestriels par exercice : les
+ * volumes des trois mois clos en juin n'existent que fondus dans le
+ * rapport annuel, qui les donne sur douze mois. Sans eux, aucune serie de
+ * volume n'a quatre trimestres consecutifs, et le cumul sur douze mois
+ * glissants devient impossible -- c'est tout l'interet de la maille TTM
+ * qui tombait.
+ *
+ * La difference est exacte, pas une estimation : douze mois moins les
+ * trois trimestres connus donne le quatrieme. On ne la calcule QUE si les
+ * trois autres sont la ; deux suffisantes ne suffisent pas.
+ */
+function completerParDifference(serie) {
+  if (!serie.annuels?.length) return;
+  const idx = (c) => {
+    const m = /^A?(\d{4})Q([1-4])$/.exec(c);
+    return m ? Number(m[1]) * 4 + (Number(m[2]) - 1) : null;
+  };
+  const cle = (i) => `${Math.floor(i / 4)}Q${(i % 4) + 1}`;
+  const connus = new Map(serie.points.map((p) => [idx(p.periode), p]));
+
+  for (const an of serie.annuels) {
+    const fin = idx(an.periode);
+    if (fin == null) continue;
+    const fenetre = [fin, fin - 1, fin - 2, fin - 3];
+    const manquants = fenetre.filter((i) => !connus.has(i));
+    if (manquants.length !== 1) continue;
+    const somme = fenetre.filter((i) => connus.has(i))
+      .reduce((a, i) => a + connus.get(i).valeur, 0);
+    const v = an.valeur - somme;
+    if (!isFinite(v)) continue;
+    const p = {
+      periode: cle(manquants[0]), valeur: v, source: `${an.source} (by difference)`,
+      extrait: `twelve months ${an.periode.slice(1)} minus the three reported quarters`,
+      reconstruit: true,
+    };
+    connus.set(manquants[0], p);
+    serie.points.push(p);
+  }
+  serie.points.sort((a, b) => a.periode.localeCompare(b.periode));
+}
+
+// ---------------------------------------------------------------------
+// Agregation temporelle
+// ---------------------------------------------------------------------
+const idxDe = (cle) => {
+  const m = /^(\d{4})Q([1-4])$/.exec(cle);
+  return m ? Number(m[1]) * 4 + (Number(m[2]) - 1) : null;
+};
+const cleDe = (i) => `${Math.floor(i / 4)}Q${(i % 4) + 1}`;
+
+/**
+ * Ramene une serie trimestrielle a la maille demandee.
+ *
+ * Un VOLUME se cumule : douze mois glissants, c'est la somme de quatre
+ * trimestres. Un TAUX DE CROISSANCE, non : additionner quatre variations
+ * annuelles ne veut rien dire. On en prend la moyenne, ce qui donne bien
+ * « la croissance moyenne des douze derniers mois », et c'est dit dans
+ * l'interface -- une moyenne de taux n'est pas un taux sur douze mois, et
+ * il ne faut pas laisser croire le contraire.
+ *
+ * Quatre trimestres CONSECUTIFS sont exiges. Un trou -- et il y en a un
+ * par exercice, le quatrieme trimestre fiscal etant couvert par le 10-K
+ * dont les tableaux sont annuels -- ne se comble pas par une somme de
+ * trois.
+ *
+ * @param {"trimestre"|"ttm"|"annuel"} maille
+ */
+export function agreger(points, maille, unite) {
+  if (maille === "trimestre" || !points.length) return points;
+
+  const parIdx = new Map();
+  for (const p of points) {
+    const i = idxDe(p.periode);
+    if (i != null) parIdx.set(i, p);
+  }
+  const moyenne = unite === "pct";
+  const sortie = [];
+
+  if (maille === "ttm") {
+    for (const [i, p] of [...parIdx.entries()].sort((a, b) => a[0] - b[0])) {
+      const fenetre = [p, parIdx.get(i - 1), parIdx.get(i - 2), parIdx.get(i - 3)];
+      if (fenetre.some((x) => x === undefined)) continue;
+      const somme = fenetre.reduce((a, x) => a + x.valeur, 0);
+      sortie.push({
+        ...p, periode: cleDe(i),
+        valeur: moyenne ? somme / 4 : somme,
+        source: `${fenetre[3].periode}→${p.periode}`,
+        extrait: `${maille.toUpperCase()} of ${fenetre.map((x) => x.periode).reverse().join(", ")}`,
+      });
+    }
+    return sortie;
+  }
+
+  //  Annuel : les quatre trimestres CIVILS d'une meme annee.
+  const parAnnee = new Map();
+  for (const [i, p] of parIdx) {
+    const an = Math.floor(i / 4);
+    if (!parAnnee.has(an)) parAnnee.set(an, []);
+    parAnnee.get(an).push(p);
+  }
+  for (const [an, liste] of [...parAnnee.entries()].sort((a, b) => a[0] - b[0])) {
+    if (liste.length !== 4) continue;
+    const somme = liste.reduce((a, x) => a + x.valeur, 0);
+    sortie.push({
+      periode: `${an}Q4`,
+      valeur: moyenne ? somme / 4 : somme,
+      source: `${an} (4 quarters)`,
+      extrait: `Calendar ${an}: ${liste.map((x) => x.periode).join(", ")}`,
+    });
+  }
+  return sortie;
+}

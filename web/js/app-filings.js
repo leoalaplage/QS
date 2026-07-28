@@ -3,8 +3,8 @@
 // =====================================================================
 
 import { SOCIETES } from "./qs-extractions.js";
-import { extraire } from "./qs-depots.js";
-import { tracer, COULEURS } from "./qs-chart-draw.js";
+import { extraire, agreger } from "./qs-depots.js";
+import { tracer, COULEURS, TYPES_GRAPHE } from "./qs-chart-draw.js";
 import { decoderCle, ErreurWorker } from "./qs-chart-edgar.js";
 import { lireEtat, ecrireEtat } from "./qs-etat.js";
 import { ECHELLE_PNG } from "./qs-settings.js";
@@ -16,9 +16,27 @@ const messages = $("#messages");
 const sorties = $("#sorties");
 const act = statut($("#statut"), $("#statut-texte"));
 
-const sauve = lireEtat("filings", { ticker: "V", profondeur: 12, choisies: null });
+const sauve = lireEtat("filings", { ticker: "V", profondeur: 44, choisies: null, types: null });
 let resultat = null;
 let choisies = new Set();
+//  Type de trace choisi pour chaque serie. Vide = le defaut de la serie,
+//  courbe pour un pourcentage, barres pour un montant.
+let types = new Map(Object.entries(sauve.types || {}));
+
+/**
+ * Couleur d'une serie, fixee par son RANG dans la societe et non par son
+ * rang dans la selection. Une pastille garde ainsi la meme couleur qu'on
+ * en coche une ou dix, et la pastille du panneau designe sans ambiguite
+ * la courbe du graphe.
+ */
+function couleurDe(cle) {
+  const i = societeCourante().series.findIndex((r) => r.cle === cle);
+  return COULEURS[(i < 0 ? 0 : i) % COULEURS.length];
+}
+
+function typeDe(cle, unite) {
+  return types.get(cle) || (unite === "pct" ? "line" : "bar");
+}
 
 // ---------------------------------------------------------------------
 // Selection de la societe
@@ -45,13 +63,31 @@ function majNote() {
 
 selSociete.addEventListener("change", majNote);
 $("#profondeur").addEventListener("change", enregistrer);
+$("#maille").addEventListener("change", () => { majNoteMaille(); enregistrer(); if (resultat) dessiner(); });
 
 function enregistrer() {
   ecrireEtat("filings", {
     ticker: selSociete.value,
-    profondeur: Number($("#profondeur").value) || 12,
+    profondeur: Number($("#profondeur").value) || 44,
+    maille: $("#maille").value,
     choisies: [...choisies],
+    types: Object.fromEntries(types),
   });
+}
+
+function majNoteMaille() {
+  const m = $("#maille").value;
+  const n = $("#note-maille");
+  if (m === "ttm") {
+    n.textContent = "Rolling twelve months: volumes and revenue are SUMMED over four consecutive "
+      + "quarters. Growth rates cannot be summed — they are averaged, which reads as \u00ab average "
+      + "growth over the last twelve months \u00bb and not as a twelve-month rate.";
+  } else if (m === "annuel") {
+    n.textContent = "Calendar year: only years with all four quarters present are shown. "
+      + "Growth rates are averaged rather than summed.";
+  } else {
+    n.textContent = "";
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -59,12 +95,14 @@ function enregistrer() {
 // ---------------------------------------------------------------------
 function dessinerChoix() {
   const zone = $("#choix-series");
+  //  Le panneau se reconstruit a chaque clic, et il est SOUS le graphe :
+  //  sans cette precaution la page sautait sous le curseur des que le
+  //  graphe changeait de hauteur, et on ne voyait plus ce qu'on venait de
+  //  cocher.
+  const defilement = window.scrollY;
   vider(zone);
   const s = societeCourante();
 
-  //  Groupees comme dans les depots : indicateurs mis en avant, volumes,
-  //  composition du chiffre d'affaires. Chacun se trace sur son propre
-  //  graphe, les unites n'etant pas comparables.
   const groupes = new Map();
   for (const r of s.series) {
     if (!groupes.has(r.groupe)) groupes.set(r.groupe, []);
@@ -74,28 +112,51 @@ function dessinerChoix() {
   for (const [nomGroupe, regles] of groupes) {
     const bloc = el("div", { classe: "groupe-series" });
     bloc.appendChild(el("div", { classe: "groupe-titre", texte: nomGroupe }));
-    const jetons = el("div", { classe: "jetons" });
+    const liste = el("div", { classe: "liste-series" });
+
     for (const r of regles) {
       const actif = choisies.has(r.cle);
-      const b = el("button", {
-        type: "button",
-        classe: `jeton-choix${actif ? " actif" : ""}`,
-        texte: r.nom,
-        title: r.commentaire || "",
-      });
-      const n = resultat?.series[r.cle]?.points.length;
-      if (n != null) b.appendChild(el("span", { classe: "nm", texte: ` ${n}q` }));
-      b.addEventListener("click", () => {
+      const serie = resultat?.series[r.cle];
+      const ligne = el("div", { classe: `ligne-serie${actif ? " actif" : ""}` });
+
+      const bouton = el("button", { type: "button", classe: "bascule-serie", title: r.commentaire || "" });
+      const pastille = el("span", { classe: "pastille-serie" });
+      pastille.style.background = actif ? couleurDe(r.cle) : "transparent";
+      pastille.style.borderColor = couleurDe(r.cle);
+      bouton.appendChild(pastille);
+      bouton.appendChild(el("span", { classe: "nom-serie", texte: r.nom }));
+      if (serie) {
+        bouton.appendChild(el("span", { classe: "compte-serie",
+          texte: serie.points.length ? `${serie.points.length}q` : "none" }));
+      }
+      bouton.addEventListener("click", () => {
         if (choisies.has(r.cle)) choisies.delete(r.cle); else choisies.add(r.cle);
         dessinerChoix();
         enregistrer();
         if (resultat) dessiner();
       });
-      jetons.appendChild(b);
+      ligne.appendChild(bouton);
+
+      //  Le type de trace ne s'affiche que pour une serie retenue : le
+      //  proposer sur les autres remplirait le panneau de commandes sans
+      //  effet.
+      if (actif) {
+        const sel = el("select", { classe: "type-serie", title: `Chart type for ${r.nom}` });
+        for (const [v, lib] of TYPES_GRAPHE) sel.appendChild(el("option", { value: v, texte: lib }));
+        sel.value = typeDe(r.cle, r.unite);
+        sel.addEventListener("change", () => {
+          types.set(r.cle, sel.value);
+          enregistrer();
+          if (resultat) dessiner();
+        });
+        ligne.appendChild(sel);
+      }
+      liste.appendChild(ligne);
     }
-    bloc.appendChild(jetons);
+    bloc.appendChild(liste);
     zone.appendChild(bloc);
   }
+  window.scrollTo(0, defilement);
 }
 
 // ---------------------------------------------------------------------
@@ -122,19 +183,22 @@ function dessiner() {
     return;
   }
 
-  let couleur = 0;
+  const maille = $("#maille").value;
   for (const [nomGroupe, liste] of parGroupe) {
-    const series = liste.map(({ regle, serie }) => ({
-      id: regle.cle,
-      libelle: serie.nom,
-      points: serie.points.map((p) => ({ ...decoderCle(p.periode), y: p.valeur }))
-        .sort((a, b) => a.x - b.x),
-      unite: serie.unite,
-      devise: "USD",
-      couleur: COULEURS[couleur++ % COULEURS.length],
-      type: serie.unite === "pct" ? "line" : "bar",
-      overlays: {},
-    })).filter((x) => x.points.length);
+    const series = liste.map(({ regle, serie }) => {
+      const points = agreger(serie.points, maille, serie.unite);
+      return {
+        id: regle.cle,
+        libelle: serie.nom + (maille === "ttm" ? " (TTM)" : maille === "annuel" ? " (year)" : ""),
+        points: points.map((p) => ({ ...decoderCle(p.periode), y: p.valeur }))
+          .sort((a, b) => a.x - b.x),
+        unite: serie.unite,
+        devise: "USD",
+        couleur: couleurDe(regle.cle),
+        type: typeDe(regle.cle, serie.unite),
+        overlays: {},
+      };
+    }).filter((x) => x.points.length);
 
     if (!series.length) continue;
     let rendu;
@@ -176,7 +240,8 @@ function dessinerAudit() {
     const tr = el("tr");
     for (const t of ["Period", "Value", "Filing", "Table row as read"]) tr.appendChild(el("th", { texte: t }));
     table.appendChild(tr);
-    for (const p of [...serie.points].reverse()) {
+    const points = agreger(serie.points, $("#maille").value, serie.unite);
+    for (const p of [...points].reverse()) {
       const l = el("tr");
       l.appendChild(el("td", { classe: "fenetre", texte: p.periode }));
       l.appendChild(el("td", { texte: format(p.valeur, serie.unite) }));
@@ -249,13 +314,15 @@ $("#btn-extraire").addEventListener("click", () => {
 $("#btn-csv").addEventListener("click", () => {
   if (!resultat) { message(messages, "erreur", "Read the filings first."); return; }
   const s = societeCourante();
-  const periodes = [...new Set(Object.values(resultat.series)
-    .flatMap((x) => x.points.map((p) => p.periode)))].sort();
-  const cles = s.series.filter((r) => resultat.series[r.cle]?.points.length);
+  const maille = $("#maille").value;
+  const agregees = {};
+  for (const [k, x] of Object.entries(resultat.series)) agregees[k] = agreger(x.points, maille, x.unite);
+  const periodes = [...new Set(Object.values(agregees).flatMap((pts) => pts.map((p) => p.periode)))].sort();
+  const cles = s.series.filter((r) => agregees[r.cle]?.length);
   const lignes = [["Period", ...cles.map((r) => r.nom)]];
   for (const per of periodes) {
     lignes.push([per, ...cles.map((r) => {
-      const p = resultat.series[r.cle].points.find((x) => x.periode === per);
+      const p = agregees[r.cle].find((x) => x.periode === per);
       return p ? p.valeur : "";
     })]);
   }
@@ -265,4 +332,6 @@ $("#btn-csv").addEventListener("click", () => {
 });
 
 if (Array.isArray(sauve.choisies)) choisies = new Set(sauve.choisies);
+if (sauve.maille) $("#maille").value = sauve.maille;
+majNoteMaille();
 majNote();

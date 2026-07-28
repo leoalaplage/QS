@@ -143,6 +143,20 @@ export function periodeDuTableau(texte) {
     const mois = MOIS[m[1].toLowerCase()];
     if (mois) return `${m[4]}Q${Math.ceil(mois / 3)}`;
   }
+  //  Le rapport annuel presente les memes tableaux sur DOUZE mois. On les
+  //  marque d'un « A » : ils ne sont pas un trimestre, mais ils permettent
+  //  de reconstituer celui qui manque -- Visa ne publie que trois
+  //  trimestres de volumes par exercice, le quatrieme n'existant que
+  //  fondu dans l'annuel.
+  //  Deux formulations pour la meme chose selon le tableau : le rapport
+  //  annuel de Visa ecrit « Twelve Months Ended June 30 » pour les
+  //  volumes et « Years Ended September 30 » pour le chiffre d'affaires.
+  const a = /(?:Twelve Months|Years?) Ended\s+([A-Za-z]+)\s+(\d{1,2})\s*,?((?:[^\d]|\d{1,3}(?!\d))*?)(\d{4})/i.exec(texte);
+  if (a) {
+    const mois = MOIS[a[1].toLowerCase()];
+    if (mois) return `A${a[4]}Q${Math.ceil(mois / 3)}`;
+  }
+
   //  Forme abregee des communiques : « Q2 2026 » designe un trimestre
   //  FISCAL, qu'on ne peut pas convertir sans connaitre la cloture de
   //  l'exercice. On ne devine pas : on renvoie null et l'appelant se

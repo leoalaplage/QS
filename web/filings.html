@@ -39,11 +39,20 @@
         <div>
           <label for="profondeur">History</label>
           <select id="profondeur">
-            <option value="4">1 year</option>
             <option value="8">2 years</option>
-            <option value="12" selected>3 years</option>
+            <option value="12">3 years</option>
             <option value="20">5 years</option>
             <option value="32">8 years</option>
+            <option value="44" selected>11 years</option>
+            <option value="80">Everything filed</option>
+          </select>
+        </div>
+        <div>
+          <label for="maille">Aggregate as</label>
+          <select id="maille">
+            <option value="trimestre" selected>Quarterly</option>
+            <option value="ttm">TTM (rolling 12 months)</option>
+            <option value="annuel">Calendar year</option>
           </select>
         </div>
       </div>
@@ -51,8 +60,9 @@
     </div>
 
     <div class="bloc">
-      <label>Series to chart</label>
-      <div id="choix-series" class="jetons"></div>
+      <label>Series to chart &mdash; the dot is the colour it takes on the chart</label>
+      <div id="choix-series"></div>
+      <p class="aide" id="note-maille"></p>
     </div>
 
     <div class="ligne-actions barre-finale">
