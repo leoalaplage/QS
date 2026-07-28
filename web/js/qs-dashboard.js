@@ -8,6 +8,7 @@
 
 import * as cfg from "./qs-config.js";
 import { Doc, rendre } from "./qs-doc.js";
+import { lireEtat } from "./qs-etat.js";
 
 const PILIERS = cfg.PILIERS;
 const NOMS_PILIERS_LONG = { Quality: "QUALITY", Health: "HEALTH", Growth: "GROWTH", Value: "VALUE" };
@@ -74,6 +75,10 @@ const COLS = [
   ["Valuation", 23, "valuation"],
   ["R.Adj", 14, "conviction"], ["Data", 12, "data"],
   ["Sect", 12, "sect"], ["Alerts", 12, "alertes"], ["Q+V", 13, "qv"],
+  //  Notes de regularite du flux de tresorerie libre, calculees sur la page
+  //  FCF. Vides tant que la societe n'y a pas ete analysee : le tableau ne
+  //  fabrique jamais un chiffre qu'il n'a pas.
+  ["FCF 5Y", 14, "fcf5"], ["FCF 10Y", 15, "fcf10"],
 ];
 const LARGEUR_TABLE = COLS.reduce((a, c) => a + c[1], 0);   // 218 mm
 
@@ -86,6 +91,8 @@ export function dessinerDashboard(retenus, tousTitres, poids, {
   // l'information interessante.
   const titresTri = retenus;
   const aujourdhui = new Date().toISOString().slice(0, 10);
+  //  Notes deposees par la page FCF. Absentes tant qu'on n'y est pas passe.
+  const notesFcf = lireEtat("fcf.notes", {});
 
   const sous =
     `Universe: ${tousTitres.length} stocks   |   shown: ${titresTri.length}   |   weights ` +
@@ -143,6 +150,18 @@ export function dessinerDashboard(retenus, tousTitres, poids, {
           doc.texteCouleur(a ? "rgb(192,0,0)" : NOIR).police(8);
           doc.cell(w, H, String(a), { align: "C", fill: true, border: true });
 
+        } else if (cle === "fcf5" || cle === "fcf10") {
+          const n = (notesFcf[t.Ticker] || {})[cle === "fcf5" ? "n5" : "n10"];
+          if (n == null) {
+            doc.fondCouleur(zebre).texteCouleur("rgb(160,160,160)").police(8);
+            doc.cell(w, H, "-", { align: "C", fill: true, border: true });
+          } else {
+            const fond = couleurScore(n);
+            doc.fondCouleur(rgb(fond)).texteCouleur(texteSur(fond)).police(8, true);
+            doc.cell(w, H, String(Math.round(n)), { align: "C", fill: true, border: true });
+            doc.police(8);
+          }
+
         } else if (cle === "qv") {
           const x0 = doc.x, y0 = doc.y;
           if (t.qv_median) {
@@ -190,7 +209,11 @@ export function dessinerDashboard(retenus, tousTitres, poids, {
       "(Attractive / Fair / Expensive). '*' = project target: attractive valuation, " +
       `solid quality (Quality >= ${cfg.SWEET_SPOT_QUALITE}) AND sound balance sheet ` +
       `(Health >= ${cfg.SWEET_SPOT_SANTE}). ` +
-      "Q+V (green check) = Quality AND Value both at or above the universe median.");
+      "Q+V (green check) = Quality AND Value both at or above the universe median. " +
+      "FCF 5Y / 10Y = free cash flow consistency over 5 and 10 fiscal years, blending growth " +
+      "(40%), how regular that growth was (R2 of a log-linear fit, 40%) and how stable the FCF " +
+      "yield stayed (20%). Computed on the FCF page; '-' means that company has not been " +
+      "analysed there yet, or that a negative FCF year makes the fit impossible.");
     doc.texteCouleur(NOIR);
   };
 
@@ -303,7 +326,9 @@ export function dessinerMethodology(poids, { echelle = 8 } = {}) {
 // Export CSV des resultats (equivalent de resultats.csv)
 // ---------------------------------------------------------------------
 export function csvResultats(retenus) {
+  const notesFcf = lireEtat("fcf.notes", {});
   const entetes = ["Rank", "Ticker", "Sector", "Cap", ...PILIERS, "TOTAL", "Grade",
+    "FCF5Y", "FCF10Y",
     "Valuation", "SweetSpot", "RiskAdjusted", "DataCoverage", "SectorRank",
     "Alerts", "AlertDetail", "Strengths", "Weaknesses"];
   const esc = (v) => {
@@ -316,7 +341,9 @@ export function csvResultats(retenus) {
     lignes.push([
       t.rang, t.Ticker, t.Secteur, t.Cap === null ? "" : t.Cap.toFixed(1),
       ...PILIERS.map((p) => f1(t.piliers[p])),
-      f1(t.total), t.note, t.valuation, t.sweet_spot ? "*" : "",
+      f1(t.total), t.note,
+      (notesFcf[t.Ticker] || {}).n5 ?? "", (notesFcf[t.Ticker] || {}).n10 ?? "",
+      t.valuation, t.sweet_spot ? "*" : "",
       f1(t.conviction), Math.round((t.couverture ?? 0) * 100),
       `${t.rang_secteur}/${t.taille_secteur}`,
       t.alertes, t.alertes_detail.join("; "),

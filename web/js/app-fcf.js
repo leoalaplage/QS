@@ -14,7 +14,7 @@ import {
   construireSerie, MODES, ErreurWorker,
 } from "./qs-chart-edgar.js";
 import { serieValo } from "./qs-prix.js";
-import { analyser, fenetre, FENETRES, PAR_AN } from "./qs-fcf.js";
+import { analyser, fenetre, noter, FENETRES, PAR_AN } from "./qs-fcf.js";
 import { lireEtat, ecrireEtat } from "./qs-etat.js";
 import { $, el, vider, message, statut, respirer, telechargerTexte } from "./qs-ui.js";
 
@@ -314,6 +314,7 @@ const COLONNES = [
   { cle: "r2", titre: "R²" },
   { cle: "cv", titre: "Yield CV", bas: true },
   { cle: "rende", titre: "Avg yield" },
+  { cle: "note", titre: "Score" },
 ];
 
 function cellule(l, col) {
@@ -325,6 +326,7 @@ function cellule(l, col) {
     case "r2": return { texte: deuxDec(l.r2), fond: echelleR2(l.r2) };
     case "cv": return { texte: deuxDec(l.cv), fond: echelleCv(l.cv) };
     case "rende": return { texte: l.rende == null ? "—" : `${l.rende.toFixed(1)} %` };
+    case "note": return { texte: l.note == null ? "—" : String(l.note), fond: l.note == null ? null : l.note / 100, gras: true };
     default: return { texte: "—" };
   }
 }
@@ -402,7 +404,9 @@ function dessinerComparaison() {
   carte.appendChild(env);
   carte.appendChild(el("p", { classe: "aide",
     texte: "Click a column to sort. Read CAGR and R² together: the first says how fast, "
-      + "the second whether it was a habit or a lucky stretch." }));
+      + "the second whether it was a habit or a lucky stretch. The Score blends the three "
+      + "columns (growth 40%, regularity 40%, yield stability 20%); the 5-year and 10-year "
+      + "scores are saved and appear as two extra columns on the Table dashboard." }));
   sorties.appendChild(carte);
 
   //  Le detail fenetre par fenetre : replie, parce qu'il n'interesse qu'une
@@ -490,15 +494,33 @@ function calculer() {
     if (!series) continue;
     const f = fenetre(series.fcf, series.rende, fenetreChoisie, parAn);
     const toutes = analyser(series.fcf, series.rende, FENETRES, parAn);
+    const n = noter(f);
+    //  Les notes a 5 et 10 ans sont calculees quelle que soit la fenetre
+    //  affichee : ce sont elles que le tableau de bord reprend.
+    const n5 = noter(fenetre(series.fcf, series.rende, 5, parAn));
+    const n10 = noter(fenetre(series.fcf, series.rende, 10, parAn));
     lignes.push({
       ticker: b.ticker, nom: b.nom, devise: b.devise,
       fcf: f.dernier ? f.dernier.val : null,
       cagr: f.cagr, r2: f.r2, cv: f.cv, rende: f.moyenneRendement,
       croissanceAjustee: f.croissanceAjustee, negatif: f.negatif,
       refus: f.refus || null, negatifs: f.negatifs || [], alerte: b.alerte, toutes,
+      note: n ? n.note : null, note5: n5 ? n5.note : null, note10: n10 ? n10.note : null,
+      detailNote: n,
     });
   }
   dernier.lignes = lignes;
+  //  Les notes sont deposees la ou la page Table ira les chercher. Elles
+  //  survivent au changement de page : c'est le seul lien entre les deux,
+  //  le site n'ayant ni serveur ni compte.
+  const notes = {};
+  for (const l of lignes) {
+    if (l.note5 == null && l.note10 == null) continue;
+    notes[l.ticker] = { n5: l.note5, n10: l.note10, mode: selPeriode.value, quand: Date.now() };
+  }
+  if (Object.keys(notes).length) {
+    ecrireEtat("fcf.notes", { ...lireEtat("fcf.notes", {}), ...notes });
+  }
   dernier.fenetre = fenetreChoisie;
   dernier.libelleMode = mode === "annuel" ? "annual" : mode === "ttm" ? "TTM" : "quarterly";
 }

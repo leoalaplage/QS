@@ -178,3 +178,59 @@ export function fenetre(fcf, rende, nbAnnees, parAn = 1) {
 export function analyser(fcf, rende, fenetres = FENETRES, parAn = 1) {
   return fenetres.map((n) => fenetre(fcf, rende, n, parAn));
 }
+
+// ---------------------------------------------------------------------
+// Note de regularite du FCF
+// ---------------------------------------------------------------------
+//  Une note unique, de 0 a 100, resumant les trois mesures d'une fenetre.
+//
+//  Les bornes ci-dessous ne sont pas des seuils de reussite mais des
+//  bornes de LECTURE : au-dela, la couleur et la note saturent, parce que
+//  distinguer 40 % et 60 % de croissance annuelle n'apporte plus rien --
+//  les deux sont exceptionnelles et aucune ne dure.
+//
+//    croissance   -5 % vaut 0, +25 % vaut 100
+//    regularite   R² de 0,30 vaut 0, de 0,95 vaut 100
+//    stabilite    CV de 0,10 vaut 100, de 0,70 vaut 0  (l'inverse : bas = bon)
+//
+//  La croissance et la regularite pesent chacune 40 %, la stabilite du
+//  rendement 20 % : les deux premieres decrivent l'entreprise, la
+//  troisieme ce que le marche en a paye. Un rendement indisponible ne
+//  doit donc pas interdire la note -- les poids restants sont
+//  renormalises.
+//
+//  En revanche une note SANS croissance ni regularite n'aurait aucun
+//  sens : les deux sont exigees.
+const BORNES = {
+  cagr: [-0.05, 0.25],
+  r2: [0.30, 0.95],
+  cv: [0.70, 0.10],        // inverse : la premiere borne vaut 0
+};
+
+const situer = (x, [bas, haut]) => {
+  if (x == null || !isFinite(x)) return null;
+  return Math.max(0, Math.min(1, (x - bas) / (haut - bas)));
+};
+
+/**
+ * Note 0-100 d'une fenetre, ou null si la croissance ou la regularite
+ * manque.
+ * @returns {{note, croissance, regularite, stabilite}|null}
+ */
+export function noter({ cagr: g, r2, cv } = {}) {
+  const c = situer(g, BORNES.cagr);
+  const r = situer(r2, BORNES.r2);
+  const s = situer(cv, BORNES.cv);
+  if (c === null || r === null) return null;
+
+  const parts = [[c, 0.4], [r, 0.4]];
+  if (s !== null) parts.push([s, 0.2]);
+  const poids = parts.reduce((a, [, w]) => a + w, 0);
+  const note = parts.reduce((a, [v, w]) => a + v * w, 0) / poids;
+  return {
+    note: Math.round(note * 100),
+    croissance: Math.round(c * 100),
+    regularite: Math.round(r * 100),
+    stabilite: s === null ? null : Math.round(s * 100),
+  };
+}
