@@ -1,9 +1,9 @@
 # QS — le site
 
 Site **statique**, **intégralement en anglais** (interface, messages, noms de
-métriques, titres et axes des graphes) : deux pages HTML, du CSS, des modules JS. Pas de build, pas
-de framework, pas de `npm install`. Tout le calcul et tout le rendu PNG se font
-dans le navigateur.
+métriques, titres et axes des graphes) : six pages HTML, du CSS, des modules JS.
+Pas de build, pas de framework, pas de `npm install`. Tout le calcul et tout le
+rendu PNG se font dans le navigateur.
 
 ## Essayer en local
 
@@ -27,6 +27,7 @@ marche pas : les modules ES sont bloqués par la politique `file://`.)
 
 | Fichier | Rôle | Équivalent Python |
 |---|---|---|
+| `sp500.html` + `js/app-sp500.js` | screener S&P 500 sur l'index nocturne, fiche détaillée chargée à la demande | — |
 | `js/qs-config.js` | poids, sens, ancres, alertes, seuils | `qs_config.py` |
 | `js/qs-parse.js` | lecture CSV/TSV, nettoyage des valeurs | `charger_csv`, `_to_float` |
 | `js/qs-engine.js` | percentiles, piliers, TOTAL, notes, rangs | `calculer_scores` |
@@ -37,6 +38,8 @@ marche pas : les modules ES sont bloqués par la politique `file://`.)
 | `js/qs-chart-draw.js` | tracé du graphe | `tracer()` (matplotlib) |
 | `js/qs-settings.js` | URL du relais, résolution des PNG | — |
 | `data/tickers.json` | table ticker → CIK (embarquée) | `data/sec_company_tickers.json` |
+| `data/univers/index.json` | résumé des 501 sociétés, lu en un seul appel par le screener | — |
+| `data/univers/<TICKER>.json` | 54 séries annuelles, trimestrielles et TTM d'une société | — |
 
 ## Modifier le système de notation
 

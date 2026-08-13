@@ -19,8 +19,12 @@ déployée sur **GitHub Pages**. Voir [`web/README.md`](web/README.md).
 
 | Page | Ce qu'elle fait |
 |---|---|
+| **S&P 500** (`sp500.html`) | Crible les 501 sociétés couvertes depuis l'index pré-calculé, puis charge la fiche annuelle / trimestrielle / TTM d'une société à la demande. |
 | **Tableau** (`index.html`) | Tu colles ton export (ou tu déposes un CSV) → le dashboard coloré en PNG, plus la page Methodology et le CSV des résultats. |
 | **Chart** (`chart.html`) | Recherche parmi les ~10 400 sociétés cotées aux US (par nom ou ticker) + métrique + **annuel / trimestriel / TTM** → le graphe historique EDGAR en PNG. |
+| **FCF** (`fcf.html`) | Compare croissance, régularité et stabilité de valorisation du free cash flow. |
+| **Portfolio** (`portfolio.html`) | Produit une fiche portefeuille A4 en PNG. |
+| **Filings** (`filings.html`) | Lit et trace les KPI qui vivent dans les tableaux des dépôts plutôt que dans XBRL. |
 
 Les images s'affichent dans la page ; le téléchargement et la copie dans le
 presse-papiers sont des boutons en plus, pas un passage obligé.

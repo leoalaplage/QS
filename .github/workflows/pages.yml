@@ -9,6 +9,13 @@ on:
     paths:
       - "web/**"
       - ".github/workflows/pages.yml"
+  # Les commits crees par l'ingestion utilisent GITHUB_TOKEN. GitHub ne
+  # rediffuse pas leur evenement push vers un autre workflow, donc Pages
+  # restait sur l'instantane initial. Le workflow_run est emis, lui, a la
+  # fin de chaque ingestion et permet de publier les nouveaux JSON.
+  workflow_run:
+    workflows: ["Ingestion S&P 500"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -22,12 +29,18 @@ concurrency:
 
 jobs:
   deploiement:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Sur workflow_run, le SHA de l'evenement est celui qui existait
+          # AVANT le commit d'ingestion. On relit explicitement main pour
+          # embarquer le commit que l'ingestion vient de pousser.
+          ref: main
 
       # enablement: active GitHub Pages tout seul si ce n'est pas deja fait.
       # Sans ca, le tout premier push echoue avec "Get Pages site failed",

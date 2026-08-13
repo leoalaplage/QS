@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QS S&amp;P 500 - fundamental screener</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <div class="marque">QS <span>S&amp;P 500</span></div>
+  <nav>
+    <a href="sp500.html" class="actif">S&amp;P 500</a>
+    <a href="index.html">Table</a>
+    <a href="chart.html">Chart</a>
+    <a href="fcf.html">FCF</a>
+    <a href="portfolio.html">Portfolio</a>
+    <a href="filings.html">Filings</a>
+  </nav>
+</header>
+
+<main class="large">
+  <div class="entete-page-univers">
+    <div>
+      <h1>Screen the S&amp;P 500</h1>
+      <p class="intro">
+        Compare quality, margins and growth across the full index. The universe is
+        computed overnight from SEC filings; opening a company loads its complete
+        annual, quarterly and TTM history.
+      </p>
+    </div>
+    <span id="fraicheur" class="badge-fraicheur">Loading data&hellip;</span>
+  </div>
+
+  <section id="resume-univers" class="stats-univers" aria-label="Universe summary"></section>
+
+  <section class="carte filtres-univers" aria-labelledby="titre-filtres">
+    <div class="barre-filtres">
+      <div class="recherche-univers">
+        <label for="recherche">Company</label>
+        <input type="search" id="recherche" placeholder="Ticker, company or industry&hellip;" autocomplete="off">
+      </div>
+      <div>
+        <label for="secteur">Sector</label>
+        <select id="secteur"><option value="">All sectors</option></select>
+      </div>
+      <div>
+        <label for="tri">Rank by</label>
+        <select id="tri">
+          <option value="pulse">Quality pulse</option>
+          <option value="roic">ROIC</option>
+          <option value="fcf_margin">FCF margin</option>
+          <option value="fcf_cagr5">FCF CAGR (5y)</option>
+          <option value="revenue_cagr5">Revenue CAGR (5y)</option>
+          <option value="operating_margin">Operating margin</option>
+          <option value="exercices">Annual history</option>
+          <option value="nom">Company name</option>
+        </select>
+      </div>
+    </div>
+
+    <details class="options" id="filtres-avances">
+      <summary>Minimum fundamentals</summary>
+      <div class="grille seuils-univers">
+        <div><label for="min-pulse">Quality pulse</label><input type="number" id="min-pulse" min="0" max="100" placeholder="none"></div>
+        <div><label for="min-roic">ROIC (%)</label><input type="number" id="min-roic" step="1" placeholder="none"></div>
+        <div><label for="min-fcf-margin">FCF margin (%)</label><input type="number" id="min-fcf-margin" step="1" placeholder="none"></div>
+        <div><label for="min-fcf-cagr">FCF CAGR, 5y (%)</label><input type="number" id="min-fcf-cagr" step="1" placeholder="none"></div>
+        <div><label for="min-revenue-cagr">Revenue CAGR, 5y (%)</label><input type="number" id="min-revenue-cagr" step="1" placeholder="none"></div>
+        <div><label for="min-history">Annual history (years)</label><input type="number" id="min-history" min="1" step="1" placeholder="none"></div>
+      </div>
+    </details>
+
+    <div class="ligne-actions">
+      <button type="button" class="lien" id="btn-reset">Reset filters</button>
+      <button type="button" class="lien" id="btn-csv">Download filtered CSV</button>
+      <span id="compte-resultats" class="compte-resultats" aria-live="polite"></span>
+    </div>
+    <div id="messages"></div>
+  </section>
+
+  <section class="carte carte-table-univers" aria-labelledby="titre-resultats">
+    <div class="entete-resultats-univers">
+      <div>
+        <h2 id="titre-resultats">Companies</h2>
+        <p class="aide">Select a row to load the company&rsquo;s full pre-computed filing history.</p>
+      </div>
+      <div class="legende-pulse">
+        <strong>Quality pulse</strong> = percentile blend of ROIC, FCF margin,
+        five-year FCF and revenue growth, and operating margin. It is a screening aid,
+        not the full QS TOTAL score.
+      </div>
+    </div>
+    <div class="table-univers-wrap">
+      <table class="table-univers">
+        <thead>
+          <tr>
+            <th class="rang">#</th>
+            <th data-tri="nom">Company</th>
+            <th data-tri="pulse" class="num">Pulse</th>
+            <th data-tri="roic" class="num">ROIC</th>
+            <th data-tri="fcf_margin" class="num">FCF margin</th>
+            <th data-tri="fcf_cagr5" class="num">FCF CAGR 5y</th>
+            <th data-tri="revenue_cagr5" class="num">Revenue CAGR 5y</th>
+            <th data-tri="operating_margin" class="num">Op. margin</th>
+            <th data-tri="exercices" class="num">History</th>
+          </tr>
+        </thead>
+        <tbody id="lignes-univers"></tbody>
+      </table>
+    </div>
+    <div class="pagination-univers">
+      <button type="button" id="page-precedente">Previous</button>
+      <span id="etat-page"></span>
+      <button type="button" id="page-suivante">Next</button>
+    </div>
+  </section>
+</main>
+
+<dialog id="fiche-societe" class="fiche-societe">
+  <div class="fiche-coquille">
+    <div class="fiche-entete">
+      <div>
+        <div id="fiche-ticker" class="fiche-ticker"></div>
+        <h2 id="fiche-nom">Company</h2>
+        <p id="fiche-sous-titre"></p>
+      </div>
+      <button type="button" id="fermer-fiche" class="fermer-fiche" aria-label="Close company details">&times;</button>
+    </div>
+    <div id="fiche-chargement" class="fiche-chargement"><span class="rondelle"></span> Loading company history&hellip;</div>
+    <div id="fiche-contenu" class="cache">
+      <div class="fiche-outils">
+        <div>
+          <label for="fiche-maille">Observed as</label>
+          <select id="fiche-maille">
+            <option value="annuel">Annual</option>
+            <option value="ttm">TTM</option>
+            <option value="trimestre">Quarterly</option>
+          </select>
+        </div>
+        <span id="fiche-points" class="aide"></span>
+      </div>
+      <section id="fiche-kpis" class="kpis-societe" aria-label="Latest fundamentals"></section>
+      <section class="fiche-section">
+        <h3>Recent history</h3>
+        <div class="table-univers-wrap"><table id="fiche-historique" class="historique-societe"></table></div>
+      </section>
+      <details id="fiche-alertes" class="repli fiche-alertes">
+        <summary>Data audit notes</summary>
+        <ul id="fiche-liste-alertes"></ul>
+      </details>
+    </div>
+    <div id="fiche-erreur" class="message erreur cache"></div>
+  </div>
+</dialog>
+
+<footer>
+  Financial data: SEC EDGAR (XBRL). Updated nightly; missing figures stay missing.
+</footer>
+
+<script type="module" src="js/app-sp500.js"></script>
+</body>
+</html>

@@ -41,7 +41,7 @@ header {
 }
 header .marque { font-weight: 700; font-size: 17px; letter-spacing: .3px; padding: 14px 0; }
 header .marque span { font-weight: 400; opacity: .7; }
-header nav { display: flex; gap: 4px; margin-left: auto; }
+header nav { display: flex; gap: 4px; margin-left: auto; overflow-x: auto; }
 header nav a {
   color: rgba(255, 255, 255, .82);
   text-decoration: none;
@@ -54,6 +54,7 @@ header nav a.actif { color: #fff; border-bottom-color: #fff; font-weight: 600; }
 
 /* -- structure ------------------------------------------------------- */
 main { max-width: 1120px; margin: 0 auto; padding: 26px 20px 70px; }
+main.large { max-width: 1420px; }
 
 .carte {
   background: var(--carte);
@@ -120,7 +121,7 @@ button.lien:hover { background: none; }
 /* -- formulaire ------------------------------------------------------- */
 .grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px 18px; }
 label { display: block; font-size: 12.5px; color: var(--texte-doux); margin-bottom: 4px; font-weight: 500; }
-input[type=text], input[type=number], select {
+input[type=text], input[type=search], input[type=number], select {
   width: 100%;
   font: inherit;
   font-size: 14px;
@@ -179,6 +180,144 @@ details.options > div { padding-top: 16px; }
   animation: tourne .7s linear infinite;
 }
 @keyframes tourne { to { transform: rotate(360deg); } }
+
+/* -- screener S&P 500 ------------------------------------------------- */
+.entete-page-univers {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 24px; margin-bottom: 18px;
+}
+.entete-page-univers .intro { margin-bottom: 0; }
+.badge-fraicheur {
+  flex: none; display: inline-flex; align-items: center; gap: 7px;
+  background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;
+  border-radius: 999px; padding: 6px 11px; font-size: 12px; font-weight: 600;
+}
+.badge-fraicheur::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--vert); }
+.badge-fraicheur.retard { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
+.badge-fraicheur.retard::before { background: #ea580c; }
+
+.stats-univers {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px; margin-bottom: 18px;
+}
+.stat-univers {
+  background: #fff; border: 1px solid var(--bord); border-radius: var(--rayon);
+  box-shadow: var(--ombre); padding: 14px 16px;
+}
+.stat-univers strong { display: block; font-size: 22px; line-height: 1.2; letter-spacing: -.3px; }
+.stat-univers span { display: block; margin-top: 3px; color: var(--texte-faible); font-size: 11.5px; text-transform: uppercase; letter-spacing: .45px; }
+
+.filtres-univers { padding: 16px 18px; }
+.barre-filtres {
+  display: grid; grid-template-columns: minmax(260px, 1.5fr) minmax(180px, .8fr) minmax(180px, .8fr);
+  gap: 14px 18px; align-items: end;
+}
+.filtres-univers details.options { margin-top: 14px; padding-top: 12px; }
+.seuils-univers { grid-template-columns: repeat(6, minmax(130px, 1fr)); }
+.compte-resultats { color: var(--texte-doux); font-size: 13px; margin-left: auto; font-variant-numeric: tabular-nums; }
+
+.carte-table-univers { padding: 0; overflow: hidden; }
+.entete-resultats-univers {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 24px;
+  padding: 18px 20px 14px; border-bottom: 1px solid var(--bord);
+}
+.entete-resultats-univers h2 { margin-bottom: 0; }
+.entete-resultats-univers .aide { margin: 4px 0 0; }
+.legende-pulse { max-width: 560px; font-size: 11.5px; line-height: 1.45; color: var(--texte-faible); }
+.legende-pulse strong { color: var(--texte-doux); }
+.table-univers-wrap { overflow-x: auto; }
+.table-univers { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.table-univers th {
+  padding: 9px 12px; background: #f8fafc; color: var(--texte-faible);
+  border-bottom: 1px solid var(--bord); text-align: left; white-space: nowrap;
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .45px;
+}
+.table-univers th[data-tri] { cursor: pointer; user-select: none; }
+.table-univers th[data-tri]::after { content: " ↕"; opacity: .35; }
+.table-univers th.tri-actif { color: var(--bleu); }
+.table-univers th.tri-actif[aria-sort="descending"]::after { content: " ↓"; opacity: 1; }
+.table-univers th.tri-actif[aria-sort="ascending"]::after { content: " ↑"; opacity: 1; }
+.table-univers td { padding: 9px 12px; border-bottom: 1px solid #edf0f4; vertical-align: middle; }
+.table-univers tbody tr { cursor: pointer; background: #fff; }
+.table-univers tbody tr:hover, .table-univers tbody tr:focus { background: #f2f7ff; outline: none; }
+.table-univers .num { text-align: right; white-space: nowrap; }
+.table-univers th.num { text-align: right; }
+.table-univers .rang { width: 44px; text-align: right; color: var(--texte-faible); }
+.societe-univers { min-width: 245px; }
+.identite-societe { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
+.ticker-univers { font-weight: 800; color: var(--bleu); min-width: 48px; }
+.nom-univers { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px; }
+.industrie-univers { color: var(--texte-faible); font-size: 11px; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 340px; }
+.score-pulse {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 32px; height: 25px; border-radius: 6px; font-weight: 800; font-size: 12.5px;
+}
+.score-pulse.haut { background: #dcfce7; color: #166534; }
+.score-pulse.moyen { background: #e8eef8; color: var(--bleu); }
+.score-pulse.bas { background: #fee2e2; color: #991b1b; }
+.score-pulse.neutre { background: #f1f5f9; color: var(--texte-faible); }
+.table-vide { text-align: center; color: var(--texte-faible); padding: 34px !important; }
+.pagination-univers {
+  display: flex; justify-content: center; align-items: center; gap: 12px;
+  padding: 13px 18px; background: #f8fafc; border-top: 1px solid var(--bord);
+  font-size: 12.5px; color: var(--texte-doux);
+}
+.pagination-univers button { padding: 6px 12px; font-size: 12px; }
+
+/* Fiche detaillee chargee depuis data/univers/<ticker>.json. */
+.fiche-societe {
+  width: min(1040px, calc(100vw - 30px)); max-height: calc(100vh - 30px);
+  border: 0; border-radius: 14px; padding: 0; color: var(--texte);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, .3);
+}
+.fiche-societe::backdrop { background: rgba(15, 23, 42, .48); backdrop-filter: blur(2px); }
+.fiche-coquille { padding: 0 22px 22px; }
+.fiche-entete {
+  position: sticky; top: 0; z-index: 2; background: #fff;
+  display: flex; justify-content: space-between; gap: 18px;
+  padding: 20px 0 15px; border-bottom: 1px solid var(--bord);
+}
+.fiche-entete h2 { margin: 1px 0 2px; color: var(--texte); text-transform: none; letter-spacing: 0; font-size: 19px; }
+.fiche-entete p { margin: 0; color: var(--texte-faible); font-size: 12.5px; }
+.fiche-ticker { color: var(--bleu-clair); font-weight: 800; letter-spacing: .7px; font-size: 12px; }
+.fermer-fiche { border: none; width: 36px; height: 36px; padding: 0; border-radius: 50%; font-size: 25px; line-height: 1; }
+.fiche-chargement { min-height: 210px; display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--texte-doux); }
+.fiche-outils { display: flex; align-items: end; gap: 16px; padding: 14px 0; }
+.fiche-outils > div { width: 180px; }
+.fiche-outils .aide { margin: 0 0 7px; }
+.kpis-societe { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+.kpi-societe { border: 1px solid #e5e9ef; background: #fbfcfd; border-radius: 8px; padding: 10px 11px; min-width: 0; }
+.kpi-societe span { display: block; color: var(--texte-doux); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-societe strong { display: block; margin-top: 3px; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-societe small { display: block; color: var(--texte-faible); font-size: 10.5px; margin-top: 1px; }
+.fiche-section { margin-top: 20px; }
+.fiche-section h3 { margin: 0 0 8px; text-transform: uppercase; letter-spacing: .5px; font-size: 11px; }
+.historique-societe { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.historique-societe th, .historique-societe td { padding: 7px 9px; border-bottom: 1px solid #edf0f4; white-space: nowrap; }
+.historique-societe thead th { background: #f8fafc; color: var(--texte-faible); text-align: right; font-size: 10.5px; }
+.historique-societe thead th:first-child, .historique-societe tbody th { text-align: left; }
+.historique-societe tbody th { color: var(--texte-doux); font-weight: 600; }
+.fiche-alertes { margin-top: 18px; border-top: 1px solid var(--bord); padding-top: 12px; }
+.fiche-alertes ul { color: var(--texte-doux); font-size: 11.5px; padding-left: 20px; }
+.fiche-alertes li + li { margin-top: 5px; }
+
+@media (max-width: 960px) {
+  .seuils-univers { grid-template-columns: repeat(3, minmax(130px, 1fr)); }
+  .kpis-societe { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .entete-page-univers, .entete-resultats-univers { display: block; }
+  .badge-fraicheur { margin-top: 12px; }
+  .stats-univers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .barre-filtres { grid-template-columns: 1fr; }
+  .legende-pulse { margin-top: 10px; }
+  .kpis-societe { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .seuils-univers { grid-template-columns: 1fr 1fr; }
+  .fiche-societe { width: 100vw; max-height: 100vh; height: 100vh; border-radius: 0; }
+  .fiche-coquille { padding: 0 14px 18px; }
+}
 
 /* -- recherche de societes -------------------------------------------- */
 .champ-recherche { position: relative; }
